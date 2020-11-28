@@ -9,7 +9,7 @@ jobs:
     steps:
 
     - name: install mamba
-      uses: beckermr/provision-with-micromamba
+      uses: beckermr/provision-with-micromamba@main
       with:
         environment-file: environment.yml
 
