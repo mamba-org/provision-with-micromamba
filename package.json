@@ -1,0 +1,28 @@
+{
+  "name": "provision-with-micromamba",
+  "version": "1.0.0",
+  "description": "GitHub Action to provision a CI instance using micromamba",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/beckermr/provision-with-micromamba.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/beckermr/provision-with-micromamba/issues"
+  },
+  "homepage": "https://github.com/beckermr/provision-with-micromamba#readme",
+  "dependencies": {
+    "@actions/core": "^1.2.6",
+    "@actions/exec": "^1.0.4",
+    "@actions/github": "^4.0.0",
+    "child_process": "^1.0.2",
+    "fs": "^0.0.1-security",
+    "js-yaml": "^3.14.0"
+  }
+}

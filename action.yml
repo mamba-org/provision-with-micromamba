@@ -1,0 +1,9 @@
+name: 'provision-with-micromamba'
+description: 'provision a CI instance using micromamba'
+inputs:
+  environment-file:
+    description: 'path to optional environment.yml file'
+    required: true
+runs:
+  using: 'node15'
+  main: 'index.js'
