@@ -2,6 +2,7 @@ const core = require('@actions/core')
 const yaml = require('js-yaml')
 const fs = require('fs')
 const execSync = require('child_process').execSync
+const path = require('path')
 
 function execute (command) {
   execSync(command, { encoding: 'utf-8' })
