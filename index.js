@@ -28,25 +28,26 @@ function touch (filename) {
 async function run () {
   try {
     const envFileName = core.getInput('environment-file')
-    console.log(envFileName)
     const envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', envFileName)
-    console.log(envFilePath)
     const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf-8'))
     const envName = envYaml.name
+    const bashrc = path.join(os.homedir(), '.bashrc')
+    const profile = path.join(os.homedir(), '.profile')
 
-    console.log('Installing environment ' + envName + '...')
+    console.log('Installing environment ' + envName + ' from ' + envFilePath + '...')
 
-    await io.rmRF(path.join(os.homedir(), '.bashrc'))
+    await io.rmRF(bashrc)
     await io.rmRF(path.join(os.homedir(), '.bash_profile'))
-    await io.rmRF(path.join(os.homedir(), '.profile'))
-    touch(path.join(os.homedir(), '.bashrc'))
+    await io.rmRF(profile)
+    await execute('touch ' + bashrc)
     await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
     await execute('./micromamba shell init -s bash -p ~/micromamba')
     await io.mkdirP(path.join(os.homedir(), 'micromamba/pkgs/'))
-    await io.mv(path.join(os.homedir(), '.bashrc'), path.join(os.homedir(), '.profile'))
-    await execute('source ~/.profile && micromamba create -f ' + envFilePath + ' -y')
-    fs.appendFileSync(path.join(os.homedir(), '.profile'), 'set -eo pipefail\n')
-    fs.appendFileSync(path.join(os.homedir(), '.profile'), 'micromamba activate\n' + envName)
+    await execute('source ~/.bashrc && micromamba create -f ' + envFilePath + ' -y')
+    fs.appendFileSync(bashrc, 'set -eo pipefail\n')
+    fs.appendFileSync(bashrc, 'micromamba activate' + envName + '\n')
+    await io.mv(bashrc, profile)
+    await execute('cat ' + profile)
   } catch (error) {
     core.setFailed(error.message)
   }
