@@ -1,5 +1,8 @@
 name: 'provision-with-micromamba'
 description: 'provision a CI instance using micromamba'
+branding:
+  icon: 'chevrons-right'
+  color: 'green'
 inputs:
   environment-file:
     description: 'the environment.yml file for the conda environment'
