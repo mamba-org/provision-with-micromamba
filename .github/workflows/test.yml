@@ -15,6 +15,4 @@ jobs:
       - name: run python
         shell: bash -l {0}
         run: |
-          cat ~/.profile
-          echo `which python`
           python -c "import numpy"

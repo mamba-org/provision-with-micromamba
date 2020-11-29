@@ -16,7 +16,22 @@ This action prints "Hello World" or "Hello" + the name of a person to greet to t
 ## Example usage
 
 ```
-uses: beckermr/provision-with-micromamba@v1
-with:
-  environment-file: environment.yml
+name: test
+on:
+  push: null
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: test
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install mamba
+        uses: beckermr/provision-with-micromamba@main
+
+      - name: run python
+        shell: bash -l {0}
+        run: |
+          python -c "import numpy"
 ```
