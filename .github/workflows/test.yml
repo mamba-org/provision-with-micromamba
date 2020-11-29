@@ -7,13 +7,14 @@ jobs:
     runs-on: ubuntu-latest
     name: test
     steps:
+      - uses: actions/checkout@v2
 
-    - name: install mamba
-      uses: beckermr/provision-with-micromamba@main
-      with:
-        environment-file: environment.yml
+      - name: install mamba
+        uses: beckermr/provision-with-micromamba@main
+        with:
+          environment-file: environment.yml
 
-    - name: run python
-      shell: bash -l {0}
-      run: |
-        python -c "import numpy"
+      - name: run python
+        shell: bash -l {0}
+        run: |
+          python -c "import numpy"
