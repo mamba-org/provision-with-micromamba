@@ -61,12 +61,12 @@ async function run () {
     await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
     await execute('./micromamba shell init -s bash -p ~/micromamba')
     await io.mkdirP(path.join(os.homedir(), 'micromamba/pkgs/'))
-    // for now do this so we respect the condarc settings
-    await execute('source ~/.bashrc && micromamba activate base && micromamba install -y -c conda-forge mamba')
-    await execute('source ~/.bashrc && micromamba activate base && mamba env create -f ' + envFilePath)
+    // we can do this so we respect the condarc settings
+    // await execute('source ~/.bashrc && micromamba activate base && micromamba install -y -c conda-forge mamba')
+    // await execute('source ~/.bashrc && micromamba activate base && mamba env create -f ' + envFilePath)
 
     // when micromamba respects the condarc, then we can do this
-    // await execute('source ~/.bashrc && micromamba create -y -f ' + envFilePath)
+    await execute('source ~/.bashrc && micromamba create -y -f ' + envFilePath)
 
     fs.appendFileSync(bashrc, 'set -eo pipefail\n')
     fs.appendFileSync(bashrc, 'micromamba activate ' + envName + '\n')
