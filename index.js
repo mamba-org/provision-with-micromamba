@@ -35,8 +35,18 @@ async function run () {
     const profile = path.join(os.homedir(), '.profile')
     const condarc = path.join(os.homedir(), '.condarc')
 
-    console.log('Installing environment ' + envName + ' from ' + envFilePath + ' ...')
+    core.startGroup('Configuring conda...')
+    touch(condarc)
+    fs.appendFileSync(condarc, 'always_yes: true\n')
+    fs.appendFileSync(condarc, 'show_channel_urls: true\n')
+    fs.appendFileSync(condarc, 'channel_priority: strict\n')
+    if (envYaml.channels !== undefined) {
+      fs.appendFileSync(condarc, 'channels: [' + envYaml.channels.join(', ') + ']\n')
+    }
+    await execute('cat ' + condarc)
+    core.endGroup()
 
+    core.startGroup('Installing environment ' + envName + ' from ' + envFilePath + ' ...')
     await io.rmRF(bashrc)
     await io.rmRF(path.join(os.homedir(), '.bash_profile'))
     await io.rmRF(profile)
@@ -48,18 +58,11 @@ async function run () {
     fs.appendFileSync(bashrc, 'set -eo pipefail\n')
     fs.appendFileSync(bashrc, 'micromamba activate ' + envName + '\n')
     await io.mv(bashrc, profile)
+    core.endGroup()
 
-    console.log('Configuring conda...')
-    touch(condarc)
-    fs.appendFileSync(condarc, 'always_yes: true\n')
-    fs.appendFileSync(condarc, 'show_channel_urls: true\n')
-    fs.appendFileSync(condarc, 'channel_priority: strict\n')
-    if (envYaml.channels !== undefined) {
-      fs.appendFileSync(condarc, 'channels: [' + envYaml.channels.join(', ') + ']\n')
-    }
-    await execute('cat ' + condarc)
-    console.log('Final environment...')
+    core.startGroup('Final environment...')
     await execute('source ~/.profile && micromamba list')
+    core.endGroup()
   } catch (error) {
     core.setFailed(error.message)
   }
