@@ -18,4 +18,4 @@ jobs:
         run: |
           python -c "import numpy"
 
-          mamba update --all
+          conda update --all
