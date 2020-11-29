@@ -1,19 +1,22 @@
 const core = require('@actions/core')
 const yaml = require('js-yaml')
 const fs = require('fs')
-const execSync = require('child_process').execSync
+const exec = require('@actions/exec').exec
 const path = require('path')
 
 function execute (command) {
-  execSync(command, { encoding: 'utf-8' })
+  console.log(command)
+  exec(command)
 }
 
 async function run () {
   try {
     const envFileName = core.getInput('environment-file')
+    console.log(envFileName)
     const envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', envFileName)
+    console.log(envFilePath)
 
-    const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
+    const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf-8'))
     const envName = envYaml.name
     core.startGroup('Installing environment ' + envName + '...')
 
