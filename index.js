@@ -32,10 +32,10 @@ async function run () {
     await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
     await execute('./micromamba shell init -s bash -p ~/micromamba')
     await io.mkdirP(path.join(os.homedir(), 'micromamba/pkgs/'))
-    fs.appendFileSync(path.join(os.homedir(), '.bashrc'), 'set -eo pipefail\n')
-    fs.appendFileSync(path.join(os.homedir(), '.bashrc'), 'micromamba activate\n' + envName)
     await io.mv(path.join(os.homedir(), '.bashrc'), path.join(os.homedir(), '.profile'))
     await execute('source ~/.profile && micromamba create -f ' + envFilePath + ' -y')
+    fs.appendFileSync(path.join(os.homedir(), '.bashrc'), 'set -eo pipefail\n')
+    fs.appendFileSync(path.join(os.homedir(), '.bashrc'), 'micromamba activate\n' + envName)
   } catch (error) {
     core.setFailed(error.message)
   }
