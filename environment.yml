@@ -5,3 +5,4 @@ channels:
 dependencies:
   - python=3.8
   - numpy
+  - mamba

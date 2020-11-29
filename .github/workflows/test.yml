@@ -17,3 +17,5 @@ jobs:
         shell: bash -l {0}
         run: |
           python -c "import numpy"
+
+          mamba update --all
