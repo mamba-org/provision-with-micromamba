@@ -21,8 +21,10 @@
     "@actions/core": "^1.2.6",
     "@actions/exec": "^1.0.4",
     "@actions/github": "^4.0.0",
+    "@actions/io": "^1.0.2",
     "child_process": "^1.0.2",
     "fs": "^0.0.1-security",
-    "js-yaml": "^3.14.0"
+    "js-yaml": "^3.14.0",
+    "os": "^0.1.1"
   }
 }

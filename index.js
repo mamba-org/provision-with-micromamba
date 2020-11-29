@@ -1,12 +1,13 @@
 const core = require('@actions/core')
 const yaml = require('js-yaml')
 const fs = require('fs')
+const os = require('os')
+const io = require('@actions/io')
 const exec = require('@actions/exec').exec
 const path = require('path')
 
 async function execute (command) {
   try {
-    console.log('bash -c \'' + command + '\'')
     await exec('bash', ['-c', command])
   } catch (error) {
     core.setFailed(error.message)
@@ -24,18 +25,16 @@ async function run () {
 
     console.log('Installing environment ' + envName + '...')
 
-    await execute('rm -f ~/.bashrc')
-    await execute('rm -f ~/.bash_profile')
-    await execute('rm -f ~/.profile')
+    await io.rmRF(path.join(os.homedir(), '.bashrc'))
+    await io.rmRF(path.join(os.homedir(), '.bash_profile'))
+    await io.rmRF(path.join(os.homedir(), '.profile'))
     await execute('touch ~/.bashrc')
     await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
     await execute('./micromamba shell init -s bash -p ~/micromamba')
-    await execute('mkdir -p ~/micromamba/pkgs/')
-    fs.appendFileSync('/home/runner/.bahsrc', 'set -eo pipefail')
-    fs.appendFileSync('/home/runner/.bashrc', 'micromamba activate ' + envName)
-    // await execute('echo "" >> ~/.bashrc')
-    // await execute('echo "micromamba activate ' + envName + '" >> ~/.bashrc')
-    await execute('mv ~/.bashrc ~/.profile')
+    await io.mkdirP(path.join(os.homedir(), 'micromamba/pkgs/'))
+    fs.appendFileSync(path.join(os.homedir(), '.bashrc'), 'set -eo pipefail')
+    fs.appendFileSync(path.join(os.homedir(), '.bashrc'), 'micromamba activate ' + envName)
+    await io.mv(path.join(os.homedir(), '.bashrc'), path.join(os.homedir(), '.profile'))
     await execute('source ~/.profile && micromamba create -f ' + envFilePath + ' -y')
   } catch (error) {
     core.setFailed(error.message)
