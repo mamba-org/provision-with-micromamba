@@ -4,9 +4,9 @@ const fs = require('fs')
 const exec = require('@actions/exec').exec
 const path = require('path')
 
-function execute (command) {
-  console.log(command)
-  exec(command)
+async function execute (command) {
+  console.log('bash -c "' + command + '"')
+  await exec(command)
 }
 
 async function run () {
@@ -30,7 +30,7 @@ async function run () {
     execute('echo "set -eo pipefail" >> ~/.bashrc')
     execute('echo "micromamba activate ' + envName + '" >> ~/.bashrc')
     execute('mv ~/.bashrc ~/.profile')
-    execute('bash -c "source ~/.profile && micromamba create -f ' + envFilePath + ' -y"')
+    execute('source ~/.profile && micromamba create -f ' + envFilePath + ' -y')
 
     execute('')
     core.endGroup()
