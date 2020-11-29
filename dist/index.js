@@ -73,7 +73,7 @@ async function run () {
     await io.mv(bashrc, profile)
     core.endGroup()
 
-    console.log('Final environment...')
+    console.log('\nfinal environment:')
     await execute('source ~/.profile && micromamba list')
   } catch (error) {
     core.setFailed(error.message)
