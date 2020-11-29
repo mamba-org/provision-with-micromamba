@@ -11,11 +11,9 @@ jobs:
 
       - name: install mamba
         uses: beckermr/provision-with-micromamba@main
-        with:
-          environment-file: environment.yml
 
       - name: run python
         shell: bash -l {0}
         run: |
-          ls -lah ~/.*
+          echo `which python`
           python -c "import numpy"
