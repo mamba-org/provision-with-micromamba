@@ -1,11 +1,7 @@
 # provision-with-micromamba Action
+[![test](https://github.com/beckermr/provision-with-micromamba/workflows/test/badge.svg)](https://github.com/beckermr/provision-with-micromamba/actions?query=workflow%3Atest)
 
 GitHub Action to provision a CI instance using micromamba
-
-
-# Hello world javascript action
-
-This action prints "Hello World" or "Hello" + the name of a person to greet to the log.
 
 ## Inputs
 
