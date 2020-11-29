@@ -6,8 +6,8 @@ const path = require('path')
 
 async function execute (command) {
   try {
-    console.log('bash -c \\""' + command + '\\""')
-    await exec('bash -c \\""' + command + '\\""')
+    console.log('bash -c \'' + command + '\'')
+    await exec('bash -c \'' + command + '\'')
   } catch (error) {
     core.setFailed(error.message)
   }
