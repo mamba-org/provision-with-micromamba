@@ -66,7 +66,7 @@ async function run () {
     // await execute('source ~/.bashrc && micromamba activate base && mamba env create -f ' + envFilePath)
 
     // when micromamba respects the condarc, then we can do this
-    await execute('source ~/.bashrc && micromamba create -y -f ' + envFilePath)
+    await execute('source ~/.bashrc && micromamba create --strict-priority -y -f ' + envFilePath)
 
     fs.appendFileSync(bashrc, 'set -eo pipefail\n')
     fs.appendFileSync(bashrc, 'micromamba activate ' + envName + '\n')
