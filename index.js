@@ -45,7 +45,7 @@ async function run () {
     await io.mkdirP(path.join(os.homedir(), 'micromamba/pkgs/'))
     await execute('source ~/.bashrc && micromamba create -f ' + envFilePath + ' -y')
     fs.appendFileSync(bashrc, 'set -eo pipefail\n')
-    fs.appendFileSync(bashrc, 'micromamba activate' + envName + '\n')
+    fs.appendFileSync(bashrc, 'micromamba activate ' + envName + '\n')
     await io.mv(bashrc, profile)
     await execute('cat ' + profile)
   } catch (error) {
