@@ -11,7 +11,7 @@ This action prints "Hello World" or "Hello" + the name of a person to greet to t
 
 ### `environment-file`
 
-**Required** The path to the `environment.yml` file for the conda env.
+**Required** The the `environment.yml` file for the conda environment. Default is `environment.yml`
 
 ## Example usage
 

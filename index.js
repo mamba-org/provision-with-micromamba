@@ -27,7 +27,7 @@ async function run () {
     execute('echo "set -eo pipefail" >> ~/.bashrc')
     execute('echo "micromamba activate ' + envName + '" >> ~/.bashrc')
     execute('mv ~/.bashrc ~/.profile')
-    execute('source ~/.profile && micromamba create -f ' + envFilePath + ' -y')
+    execute('bash -c "source ~/.profile && micromamba create -f ' + envFilePath + ' -y"')
 
     execute('')
     core.endGroup()

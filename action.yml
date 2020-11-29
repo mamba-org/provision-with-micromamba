@@ -2,8 +2,9 @@ name: 'provision-with-micromamba'
 description: 'provision a CI instance using micromamba'
 inputs:
   environment-file:
-    description: 'path to optional environment.yml file'
+    description: 'the environment.yml file for the conda environment'
     required: true
+    default: environment.yml
 runs:
   using: 'node12'
   main: 'index.js'
