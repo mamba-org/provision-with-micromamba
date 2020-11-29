@@ -55,9 +55,11 @@ async function run () {
     fs.appendFileSync(condarc, 'show_channel_urls: true\n')
     fs.appendFileSync(condarc, 'channel_priority: strict\n')
     if (envYaml.channels !== undefined) {
-      fs.appendFileSync(condarc, 'channels: [' + envYaml.channels.join(',') + ']\n')
+      fs.appendFileSync(condarc, 'channels: [' + envYaml.channels.join(', ') + ']\n')
     }
     await execute('cat ' + condarc)
+    console.log('Final environment...')
+    await execute('source ~/.profile && micromamba list')
   } catch (error) {
     core.setFailed(error.message)
   }
