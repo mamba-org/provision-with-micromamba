@@ -36,7 +36,7 @@ async function run () {
   try {
     const envFileName = core.getInput('environment-file')
     const envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', envFileName)
-    const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf-8'))
+    const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
     const envName = envYaml.name
     const condarc = path.join(os.homedir(), '.condarc')
     const profile = path.join(os.homedir(), '.bash_profile')
@@ -73,7 +73,7 @@ async function run () {
       touch(bashrc)
       try {
         await execute('./micromamba shell init -s bash -p ~/micromamba')
-        await execute('mv ' + bashrc + ' ' + profile)
+        fs.appendFileSync(profile, '\n' + fs.readFileSync(bashrc, 'utf8'), 'utf8')
         await execute('mv ' + bashrcBak + ' ' + bashrc)
       } catch (error) {
         await execute('mv ' + bashrcBak + ' ' + bashrc)
