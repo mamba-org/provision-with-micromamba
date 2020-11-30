@@ -41,9 +41,9 @@ async function run () {
     const envName = envYaml.name
     let bashrc = ''
     if (process.platform === 'darwin') {
-      bashrc = path.join(os.homedir(), '.bashrc')
-    } else {
       bashrc = path.join(os.homedir(), '.bash_profile')
+    } else {
+      bashrc = path.join(os.homedir(), '.bashrc')
     }
     const profile = path.join(os.homedir(), '.profile')
     const condarc = path.join(os.homedir(), '.condarc')
@@ -78,14 +78,14 @@ async function run () {
     // await execute('source ~/.bashrc && micromamba activate base && mamba env create -f ' + envFilePath)
 
     // when micromamba respects the condarc, then we can do this
-    await execute('source ~/.bashrc && micromamba create --strict-channel-priority -y -f ' + envFilePath)
+    await execute('source ' + bashrc + ' && micromamba create --strict-channel-priority -y -f ' + envFilePath)
 
     fs.appendFileSync(bashrc, 'set -eo pipefail\n')
     fs.appendFileSync(bashrc, 'micromamba activate ' + envName + '\n')
     await io.mv(bashrc, profile)
     core.endGroup()
 
-    await execute('source ~/.profile && micromamba list')
+    await execute('source ' + profile + ' && micromamba list')
   } catch (error) {
     core.setFailed(error.message)
   }
