@@ -1,4 +1,4 @@
-# provision-with-micromamba Action
+# provision-with-micromamba
 [![test](https://github.com/beckermr/provision-with-micromamba/workflows/test/badge.svg)](https://github.com/beckermr/provision-with-micromamba/actions?query=workflow%3Atest)
 
 GitHub Action to provision a CI instance using micromamba
