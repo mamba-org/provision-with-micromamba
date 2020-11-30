@@ -16,17 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: run python
-        shell: bash -l {0}
-        run: |
-          cat ~/.bashrc
-
       - name: install mamba
         uses: beckermr/provision-with-micromamba@docs-keep-bashrc
 
       - name: run python
         shell: bash -l {0}
         run: |
-          cat ~/.profile
-          cat ~/.bashrc
+          ls -lah ~/.*
           python -c "import numpy"
