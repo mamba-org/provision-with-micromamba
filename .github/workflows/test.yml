@@ -16,14 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: get branch name
-        run: |
-          bname=`basename ${{ github.ref }}`
-          echo '::set-output name=BRANCH_NAME::'${bname}
-        id: get-branch-name
-
       - name: install mamba
-        uses: ${{ github.repository }}@${{ steps.get-branch-name.outputs.BRANCH_NAME }}
+        uses: .
 
       - name: run python
         shell: bash -l {0}
