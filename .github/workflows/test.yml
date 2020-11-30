@@ -22,7 +22,7 @@ jobs:
           cat ~/.bashrc
 
       - name: install mamba
-        uses: beckermr/provision-with-micromamba@main
+        uses: beckermr/provision-with-micromamba@docs-keep-bashrc
 
       - name: run python
         shell: bash -l {0}
