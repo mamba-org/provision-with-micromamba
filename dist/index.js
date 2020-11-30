@@ -40,6 +40,8 @@ async function run () {
     const envName = envYaml.name
     const condarc = path.join(os.homedir(), '.condarc')
     let profile = ''
+    const bashrc = path.join(os.homedir(), '.bashrc')
+    const bashrcBak = path.join(os.homedir(), '.bashrc.actionbak')
 
     core.startGroup('Configuring conda...')
     touch(condarc)
@@ -57,8 +59,6 @@ async function run () {
     if (process.platform === 'darwin') {
       // macos
       profile = path.join(os.homedir(), '.bash_profile')
-      await execute('cat ~/.bash_profile')
-      await execute('cat ~/.profile')
       await execute('curl -Ls https://micromamba.snakepit.net/api/micromamba/osx-64/latest | tar -xvj bin/micromamba')
       await execute('mv ./bin/micromamba ./micromamba')
       await execute('rm -rf ./bin')
@@ -70,15 +70,15 @@ async function run () {
       await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
 
       // on linux we move the bashrc to a backup and then restore
-      await execute('cat ~/.bashrc')
-      await execute('mv ~/.bashrc ~/.bashrc.actionbak')
-      touch('~/.bashrc')
+      await execute('cat ' + bashrc)
+      await execute('mv ' + bashrc + ' ' + bashrcBak)
+      touch(bashrc)
       try {
         await execute('./micromamba shell init -s bash -p ~/micromamba')
-        await execute('mv ~/.bashrc ~/.profile')
-        await execute('mv ~/.bashrc.actionbak ~/.bashrc')
+        await execute('mv ' + bashrc + ' ' + profile)
+        await execute('mv ' + bashrcBak + ' ' + bashrc)
       } catch (error) {
-        await execute('mv ~/.bashrc.actionbak ~/.bashrc')
+        await execute('mv ' + bashrcBak + ' ' + bashrc)
         core.setFailed(error.message)
       }
     }
