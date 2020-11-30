@@ -1,5 +1,5 @@
 # provision-with-micromamba
-[![test](https://github.com/beckermr/provision-with-micromamba/workflows/test/badge.svg)](https://github.com/beckermr/provision-with-micromamba/actions?query=workflow%3Atest)
+[![test](https://github.com/mamba-org/provision-with-micromamba/workflows/test/badge.svg)](https://github.com/mamba-org/provision-with-micromamba/actions?query=workflow%3Atest)
 
 GitHub Action to provision a CI instance using micromamba
 
@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: install mamba
-        uses: beckermr/provision-with-micromamba@main
+        uses: mamba-org/provision-with-micromamba@main
 
       - name: run python
         shell: bash -l {0}
