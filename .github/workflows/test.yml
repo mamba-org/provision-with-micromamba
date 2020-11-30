@@ -16,6 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: test shell init
+        shell: bash -l -euo pipefail {0}
+        run: |
+          echo 'shell is not fully setup!'
+
       - name: install mamba
         uses: beckermr/provision-with-micromamba@main
 
