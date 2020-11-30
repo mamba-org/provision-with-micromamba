@@ -12,6 +12,7 @@ const os = __webpack_require__(87)
 const io = __webpack_require__(668)
 const exec = __webpack_require__(924).exec
 const path = __webpack_require__(622)
+const process = __webpack_require__(765)
 
 async function execute (command) {
   try {
@@ -58,7 +59,13 @@ async function run () {
     await io.rmRF(path.join(os.homedir(), '.bash_profile'))
     await io.rmRF(profile)
     touch(bashrc)
-    await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
+    if (process.platform === 'darwin') {
+      await execute('curl -Ls https://micromamba.snakepit.net/api/micromamba/osx-64/latest | tar -xvj bin/micromamba')
+      await io.mv('./bin/micromamba', './micromamba')
+      await io.rmRF('./bin')
+    } else {
+      await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
+    }
     await execute('./micromamba shell init -s bash -p ~/micromamba')
     await io.mkdirP(path.join(os.homedir(), 'micromamba/pkgs/'))
     // we can do this so we respect the condarc settings
@@ -5846,6 +5853,14 @@ module.exports = require("os");;
 
 "use strict";
 module.exports = require("path");;
+
+/***/ }),
+
+/***/ 765:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("process");;
 
 /***/ }),
 

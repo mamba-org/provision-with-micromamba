@@ -5,6 +5,7 @@ const os = require('os')
 const io = require('@actions/io')
 const exec = require('@actions/exec').exec
 const path = require('path')
+const process = require('process')
 
 async function execute (command) {
   try {
@@ -51,7 +52,13 @@ async function run () {
     await io.rmRF(path.join(os.homedir(), '.bash_profile'))
     await io.rmRF(profile)
     touch(bashrc)
-    await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
+    if (process.platform === 'darwin') {
+      await execute('curl -Ls https://micromamba.snakepit.net/api/micromamba/osx-64/latest | tar -xvj bin/micromamba')
+      await io.mv('./bin/micromamba', './micromamba')
+      await io.rmRF('./bin')
+    } else {
+      await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
+    }
     await execute('./micromamba shell init -s bash -p ~/micromamba')
     await io.mkdirP(path.join(os.homedir(), 'micromamba/pkgs/'))
     // we can do this so we respect the condarc settings
