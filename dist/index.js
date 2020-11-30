@@ -9,7 +9,6 @@ const core = __webpack_require__(414)
 const yaml = __webpack_require__(684)
 const fs = __webpack_require__(747)
 const os = __webpack_require__(87)
-const io = __webpack_require__(56)
 const exec = __webpack_require__(666).exec
 const path = __webpack_require__(622)
 const process = __webpack_require__(765)
@@ -40,8 +39,6 @@ async function run () {
     const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf-8'))
     const envName = envYaml.name
     const condarc = path.join(os.homedir(), '.condarc')
-    const bashrc = path.join(os.homedir(), '.bashrc')
-    const bashrcBak = bashrc + '.bak'
     let profile = ''
 
     core.startGroup('Configuring conda...')
@@ -60,28 +57,33 @@ async function run () {
     if (process.platform === 'darwin') {
       // macos
       profile = path.join(os.homedir(), '.bash_profile')
+      await execute('cat ~/.bash_profile')
+      await execute('cat ~/.profile')
       await execute('curl -Ls https://micromamba.snakepit.net/api/micromamba/osx-64/latest | tar -xvj bin/micromamba')
-      await io.mv('./bin/micromamba', './micromamba')
-      await io.rmRF('./bin')
+      await execute('mv ./bin/micromamba ./micromamba')
+      await execute('rm -rf ./bin')
       await execute('./micromamba shell init -s bash -p ~/micromamba')
     } else {
       // linux
       profile = path.join(os.homedir(), '.profile')
-      touch(profile)
+      await execute('touch ' + profile)
       await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
+
       // on linux we move the bashrc to a backup and then restore
-      await io.mv(bashrc, bashrcBak)
+      await execute('cat ~/.bashrc')
+      await execute('mv ~/.bashrc ~/.bashrc.actionbak')
       try {
         await execute('./micromamba shell init -s bash -p ~/micromamba')
-        await io.mv(bashrcBak, bashrc)
+        await execute('mv ~/.bashrc ~/.profile')
+        await execute('mv ~/.bashrc.actionbak ~/.bashrc')
       } catch (error) {
-        await io.mv(bashrcBak, bashrc)
+        await execute('mv ~/.bashrc.actionbak ~/.bashrc')
         core.setFailed(error.message)
       }
     }
 
     // final bits of the install
-    await io.mkdirP(path.join(os.homedir(), 'micromamba/pkgs/'))
+    await execute('mkdir -p ' + path.join(os.homedir(), 'micromamba/pkgs/'))
     await execute('source ' + profile + ' && micromamba create --strict-channel-priority -y -f ' + envFilePath)
     fs.appendFileSync(profile, 'set -eo pipefail\n')
     fs.appendFileSync(profile, 'micromamba activate ' + envName + '\n')
@@ -110,14 +112,6 @@ module.exports = eval("require")("@actions/core");
 /***/ ((module) => {
 
 module.exports = eval("require")("@actions/exec");
-
-
-/***/ }),
-
-/***/ 56:
-/***/ ((module) => {
-
-module.exports = eval("require")("@actions/io");
 
 
 /***/ }),
