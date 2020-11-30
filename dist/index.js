@@ -39,7 +39,7 @@ async function run () {
     const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf-8'))
     const envName = envYaml.name
     const condarc = path.join(os.homedir(), '.condarc')
-    let profile = ''
+    const profile = path.join(os.homedir(), '.bash_profile')
     const bashrc = path.join(os.homedir(), '.bashrc')
     const bashrcBak = path.join(os.homedir(), '.bashrc.actionbak')
 
@@ -56,20 +56,19 @@ async function run () {
 
     core.startGroup('Installing environment ' + envName + ' from ' + envFilePath + ' ...')
 
+    touch(profile)
+
     if (process.platform === 'darwin') {
       // macos
-      profile = path.join(os.homedir(), '.bash_profile')
       await execute('curl -Ls https://micromamba.snakepit.net/api/micromamba/osx-64/latest | tar -xvj bin/micromamba')
       await execute('mv ./bin/micromamba ./micromamba')
       await execute('rm -rf ./bin')
       await execute('./micromamba shell init -s bash -p ~/micromamba')
     } else {
       // linux
-      profile = path.join(os.homedir(), '.bash_profile')
       await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
 
       // on linux we move the bashrc to a backup and then restore
-      await execute('cat ' + bashrc)
       await execute('mv ' + bashrc + ' ' + bashrcBak)
       touch(bashrc)
       try {

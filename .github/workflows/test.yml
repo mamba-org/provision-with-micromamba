@@ -22,5 +22,4 @@ jobs:
       - name: run python
         shell: bash -l {0}
         run: |
-          ls -lah ~/.*
           python -c "import numpy"

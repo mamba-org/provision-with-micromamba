@@ -37,4 +37,6 @@ jobs:
 When developing, you need to
 
 1. install `nodejs`
-2. run `npm run build` after making changes
+2. clone the repo
+3. run `node install -y`
+4. run `npm run build` after making changes
