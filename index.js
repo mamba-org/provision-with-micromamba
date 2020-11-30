@@ -58,8 +58,7 @@ async function run () {
       await execute('./micromamba shell init -s bash -p ~/micromamba')
     } else {
       // linux
-      profile = path.join(os.homedir(), '.profile')
-      await execute('touch ' + profile)
+      profile = path.join(os.homedir(), '.bash_profile')
       await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
 
       // on linux we move the bashrc to a backup and then restore
