@@ -31,3 +31,10 @@ jobs:
         run: |
           python -c "import numpy"
 ```
+
+## Development
+
+When developing, you need to
+
+1. install `nodejs`
+2. run `npm run build` after making changes

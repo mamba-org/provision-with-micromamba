@@ -38,7 +38,6 @@ async function run () {
     } else {
       bashrc = path.join(os.homedir(), '.bashrc')
     }
-    const profile = path.join(os.homedir(), '.profile')
     const condarc = path.join(os.homedir(), '.condarc')
 
     core.startGroup('Configuring conda...')
@@ -53,10 +52,10 @@ async function run () {
     core.endGroup()
 
     core.startGroup('Installing environment ' + envName + ' from ' + envFilePath + ' ...')
-    await io.rmRF(path.join(os.homedir(), '.bashrc'))
-    await io.rmRF(path.join(os.homedir(), '.bash_profile'))
-    await io.rmRF(profile)
-    touch(bashrc)
+    // await io.rmRF(path.join(os.homedir(), '.bashrc'))
+    // await io.rmRF(path.join(os.homedir(), '.bash_profile'))
+    // await io.rmRF(profile)
+    // touch(bashrc)
     if (process.platform === 'darwin') {
       await execute('curl -Ls https://micromamba.snakepit.net/api/micromamba/osx-64/latest | tar -xvj bin/micromamba')
       await io.mv('./bin/micromamba', './micromamba')
@@ -66,19 +65,14 @@ async function run () {
     }
     await execute('./micromamba shell init -s bash -p ~/micromamba')
     await io.mkdirP(path.join(os.homedir(), 'micromamba/pkgs/'))
-    // we can do this so we respect the condarc settings
-    // await execute('source ~/.bashrc && micromamba activate base && micromamba install -y -c conda-forge mamba')
-    // await execute('source ~/.bashrc && micromamba activate base && mamba env create -f ' + envFilePath)
-
-    // when micromamba respects the condarc, then we can do this
     await execute('source ' + bashrc + ' && micromamba create --strict-channel-priority -y -f ' + envFilePath)
 
     fs.appendFileSync(bashrc, 'set -eo pipefail\n')
     fs.appendFileSync(bashrc, 'micromamba activate ' + envName + '\n')
-    await io.mv(bashrc, profile)
+    // await io.mv(bashrc, profile)
     core.endGroup()
 
-    await execute('source ' + profile + ' && micromamba list')
+    await execute('source ' + bashrc + ' && micromamba list')
   } catch (error) {
     core.setFailed(error.message)
   }

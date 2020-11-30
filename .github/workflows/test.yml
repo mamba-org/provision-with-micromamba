@@ -21,3 +21,8 @@ jobs:
         shell: bash -l {0}
         run: |
           python -c "import numpy"
+
+      - name: run python
+        shell: bash -l -euo pipefail {0}
+        run: |
+          python -c "import numpy"
