@@ -22,4 +22,6 @@ jobs:
       - name: run python
         shell: bash -l {0}
         run: |
+          cat ~/.profile
+          cat ~/.bashrc
           python -c "import numpy"

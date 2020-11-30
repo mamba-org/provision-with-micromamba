@@ -62,10 +62,12 @@ async function run () {
       profile = path.join(os.homedir(), '.profile')
       touch(profile)
       await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
+
       // on linux we move the bashrc to a backup and then restore
       await io.mv(bashrc, bashrcBak)
       try {
         await execute('./micromamba shell init -s bash -p ~/micromamba')
+        await io.mv(bashrc, profile)
         await io.mv(bashrcBak, bashrc)
       } catch (error) {
         await io.mv(bashrcBak, bashrc)
