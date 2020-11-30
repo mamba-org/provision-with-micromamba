@@ -65,6 +65,7 @@ async function run () {
       // on linux we move the bashrc to a backup and then restore
       await execute('cat ~/.bashrc')
       await execute('mv ~/.bashrc ~/.bashrc.actionbak')
+      touch('~/.bashrc')
       try {
         await execute('./micromamba shell init -s bash -p ~/micromamba')
         await execute('mv ~/.bashrc ~/.profile')
