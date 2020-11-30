@@ -16,6 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: test bash
+        shell: bash -l -euo pipefail {0}
+        run: |
+          echo 'works!'
+
       - name: install mamba
         uses: beckermr/provision-with-micromamba@main
 
