@@ -16,16 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: run python
-        shell: bash -l {0}
-        run: |
-          cat ~/.bash_profile
-
       - name: install mamba
         uses: ./
 
       - name: run python
         shell: bash -l {0}
         run: |
-          cat ~/.bash_profile
           python -c "import numpy"
