@@ -32,7 +32,12 @@ async function run () {
     const envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', envFileName)
     const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf-8'))
     const envName = envYaml.name
-    const bashrc = path.join(os.homedir(), '.bashrc')
+    let bashrc = ''
+    if (process.platform === 'darwin') {
+      bashrc = path.join(os.homedir(), '.bashrc')
+    } else {
+      bashrc = path.join(os.homedir(), '.bash_profile')
+    }
     const profile = path.join(os.homedir(), '.profile')
     const condarc = path.join(os.homedir(), '.condarc')
 
@@ -48,7 +53,7 @@ async function run () {
     core.endGroup()
 
     core.startGroup('Installing environment ' + envName + ' from ' + envFilePath + ' ...')
-    await io.rmRF(bashrc)
+    await io.rmRF(path.join(os.homedir(), '.bashrc'))
     await io.rmRF(path.join(os.homedir(), '.bash_profile'))
     await io.rmRF(profile)
     touch(bashrc)
