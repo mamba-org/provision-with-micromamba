@@ -13,6 +13,10 @@ const exec = __webpack_require__(924).exec
 const path = __webpack_require__(622)
 const process = __webpack_require__(765)
 
+async function executeNoCatch (command) {
+  await exec('bash', ['-c', command])
+}
+
 async function execute (command) {
   try {
     await exec('bash', ['-c', command])
@@ -60,13 +64,22 @@ async function run () {
 
     if (process.platform === 'darwin') {
       // macos
-      await execute('curl -Ls https://micromamba.snakepit.net/api/micromamba/osx-64/latest | tar -xvj bin/micromamba')
+      try {
+        await executeNoCatch('curl -Ls https://micromamba.snakepit.net/api/micromamba/osx-64/latest | tar -xvj bin/micromamba')
+      } catch (error) {
+        await execute('curl -Ls https://micromamba.snakepit.net/api/micromamba/osx-64/latest | tar -xvz bin/micromamba')
+      }
+      await execute()
       await execute('mv ./bin/micromamba ./micromamba')
       await execute('rm -rf ./bin')
       await execute('./micromamba shell init -s bash -p ~/micromamba')
     } else {
       // linux
-      await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
+      try {
+        await executeNoCatch('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
+      } catch (error) {
+        await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvz bin/micromamba --strip-components=1')
+      }
 
       // on linux we move the bashrc to a backup and then restore
       await execute('mv ' + bashrc + ' ' + bashrcBak)
