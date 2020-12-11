@@ -60,13 +60,13 @@ async function run () {
 
     if (process.platform === 'darwin') {
       // macos
-      await execute('curl -Ls https://micromamba.snakepit.net/api/micromamba/osx-64/latest | tar -xvz bin/micromamba')
+      await execute('curl -Ls https://micromamba.snakepit.net/api/micromamba/osx-64/latest | tar -xvj bin/micromamba')
       await execute('mv ./bin/micromamba ./micromamba')
       await execute('rm -rf ./bin')
       await execute('./micromamba shell init -s bash -p ~/micromamba')
     } else {
       // linux
-      await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvz bin/micromamba --strip-components=1')
+      await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
 
       // on linux we move the bashrc to a backup and then restore
       await execute('mv ' + bashrc + ' ' + bashrcBak)
