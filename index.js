@@ -62,7 +62,6 @@ async function run () {
       } catch (error) {
         await execute('curl -Ls https://micromamba.snakepit.net/api/micromamba/osx-64/latest | tar -xvz bin/micromamba')
       }
-      await execute()
       await execute('mv ./bin/micromamba ./micromamba')
       await execute('rm -rf ./bin')
       await execute('./micromamba shell init -s bash -p ~/micromamba')
