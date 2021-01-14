@@ -71,18 +71,18 @@ async function run () {
       if (process.platform === 'darwin') {
         // macos
         try {
-          await executeNoCatch(`curl -Ls ${baseUrl}/osx-64/latest | tar -xvjO bin/micromamba | ${micromambaLoc}`)
+          await executeNoCatch(`curl -Ls ${baseUrl}/osx-64/latest | tar -xvjO bin/micromamba > ${micromambaLoc}`)
         } catch (error) {
-          await execute(`curl -Ls ${baseUrl}/osx-64/latest | tar -xvzO bin/micromamba | ${micromambaLoc}`)
+          await execute(`curl -Ls ${baseUrl}/osx-64/latest | tar -xvzO bin/micromamba > ${micromambaLoc}`)
         }
         await execute(`chmod u+x ${micromambaLoc}`)
         await execute(`${micromambaLoc} shell init -s bash -p ~/micromamba`)
       } else if (process.platform === 'linux') {
         // linux
         try {
-          await executeNoCatch(`wget -qO- ${baseUrl}/linux-64/latest | tar -xvjO bin/micromamba | ${micromambaLoc}`)
+          await executeNoCatch(`wget -qO- ${baseUrl}/linux-64/latest | tar -xvjO bin/micromamba > ${micromambaLoc}`)
         } catch (error) {
-          await execute(`wget -qO- ${baseUrl}/linux-64/latest | tar -xvzO bin/micromamba | ${micromambaLoc}`)
+          await execute(`wget -qO- ${baseUrl}/linux-64/latest | tar -xvzO bin/micromamba > ${micromambaLoc}`)
         }
         await execute(`chmod u+x ${micromambaLoc}`)
 
