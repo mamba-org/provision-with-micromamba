@@ -48,7 +48,7 @@ async function run () {
     const profile = path.join(os.homedir(), '.bash_profile')
     const bashrc = path.join(os.homedir(), '.bashrc')
     const bashrcBak = path.join(os.homedir(), '.bashrc.actionbak')
-    const micromambaLoc = path.join(os.homedir(), 'micromamba/bin/micromamba')
+    const micromambaLoc = path.join(os.homedir(), 'micromamba-bin/micromamba')
 
     if (process.platform !== 'win32') {
       core.startGroup('Configuring conda...')
@@ -66,7 +66,7 @@ async function run () {
 
       touch(profile)
 
-      await execute('mkdir -p ' + path.join(os.homedir(), 'micromamba/bin/'))
+      await execute('mkdir -p ' + path.join(os.homedir(), 'micromamba-bin/'))
 
       if (process.platform === 'darwin') {
         // macos
