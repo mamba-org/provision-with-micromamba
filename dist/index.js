@@ -2,16 +2,16 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 89:
-/***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 932:
+/***/ ((__unused_webpack_module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const core = __webpack_require__(257)
-const yaml = __webpack_require__(344)
-const fs = __webpack_require__(747)
-const os = __webpack_require__(87)
-const exec = __webpack_require__(924).exec
-const path = __webpack_require__(622)
-const process = __webpack_require__(765)
+const core = __nccwpck_require__(186)
+const yaml = __nccwpck_require__(917)
+const fs = __nccwpck_require__(747)
+const os = __nccwpck_require__(87)
+const exec = __nccwpck_require__(990).exec
+const path = __nccwpck_require__(622)
+const process = __nccwpck_require__(765)
 
 async function executeNoCatch (command) {
   await exec('bash', ['-c', command])
@@ -20,6 +20,14 @@ async function executeNoCatch (command) {
 async function execute (command) {
   try {
     await exec('bash', ['-c', command])
+  } catch (error) {
+    core.setFailed(error.message)
+  }
+}
+
+async function exec_pwsh (command) {
+  try {
+    await exec('powershell', ['-command', command])
   } catch (error) {
     core.setFailed(error.message)
   }
@@ -38,6 +46,7 @@ function touch (filename) {
 
 async function run () {
   try {
+    const base_url = 'https://micro.mamba.pm/api/micromamba'
     const envFileName = core.getInput('environment-file')
     const envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', envFileName)
     const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
@@ -47,60 +56,102 @@ async function run () {
     const bashrc = path.join(os.homedir(), '.bashrc')
     const bashrcBak = path.join(os.homedir(), '.bashrc.actionbak')
 
-    core.startGroup('Configuring conda...')
-    touch(condarc)
-    fs.appendFileSync(condarc, 'always_yes: true\n')
-    fs.appendFileSync(condarc, 'show_channel_urls: true\n')
-    fs.appendFileSync(condarc, 'channel_priority: strict\n')
-    if (envYaml.channels !== undefined) {
-      fs.appendFileSync(condarc, 'channels: [' + envYaml.channels.join(', ') + ']\n')
-    }
-    await execute('cat ' + condarc)
-    core.endGroup()
-
-    core.startGroup('Installing environment ' + envName + ' from ' + envFilePath + ' ...')
-
-    touch(profile)
-
-    if (process.platform === 'darwin') {
-      // macos
-      try {
-        await executeNoCatch('curl -Ls https://micromamba.snakepit.net/api/micromamba/osx-64/latest | tar -xvj bin/micromamba')
-      } catch (error) {
-        await execute('curl -Ls https://micromamba.snakepit.net/api/micromamba/osx-64/latest | tar -xvz bin/micromamba')
+    if (process.platform !== 'win32')
+    {
+      core.startGroup('Configuring conda...')
+      touch(condarc)
+      fs.appendFileSync(condarc, 'always_yes: true\n')
+      fs.appendFileSync(condarc, 'show_channel_urls: true\n')
+      fs.appendFileSync(condarc, 'channel_priority: strict\n')
+      if (envYaml.channels !== undefined) {
+        fs.appendFileSync(condarc, 'channels: [' + envYaml.channels.join(', ') + ']\n')
       }
-      await execute('mv ./bin/micromamba ./micromamba')
-      await execute('rm -rf ./bin')
-      await execute('./micromamba shell init -s bash -p ~/micromamba')
-    } else {
-      // linux
-      try {
-        await executeNoCatch('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1')
-      } catch (error) {
-        await execute('wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvz bin/micromamba --strip-components=1')
-      }
+      await execute('cat ' + condarc)
+      core.endGroup()
 
-      // on linux we move the bashrc to a backup and then restore
-      await execute('mv ' + bashrc + ' ' + bashrcBak)
-      touch(bashrc)
-      try {
+      core.startGroup('Installing environment ' + envName + ' from ' + envFilePath + ' ...')
+
+      touch(profile)
+
+      if (process.platform === 'darwin')
+      {
+        // macos
+        try {
+          await executeNoCatch(`curl -Ls ${base_url}/osx-64/latest | tar -xvj bin/micromamba`)
+        } catch (error) {
+          await execute(`curl -Ls ${base_url}/osx-64/latest | tar -xvz bin/micromamba`)
+        }
+        await execute('mv ./bin/micromamba ./micromamba')
+        await execute('rm -rf ./bin')
         await execute('./micromamba shell init -s bash -p ~/micromamba')
-        fs.appendFileSync(profile, '\n' + fs.readFileSync(bashrc, 'utf8'), 'utf8')
-        await execute('mv ' + bashrcBak + ' ' + bashrc)
-      } catch (error) {
-        await execute('mv ' + bashrcBak + ' ' + bashrc)
-        core.setFailed(error.message)
       }
+      else if (process.platform === 'linux')
+      {
+        // linux
+        try {
+          await executeNoCatch(`wget -qO- ${base_url}/linux-64/latest | tar -xvj bin/micromamba --strip-components=1`)
+        } catch (error) {
+          await execute(`wget -qO- ${base_url}/linux-64/latest | tar -xvz bin/micromamba --strip-components=1`)
+        }
+
+        // on linux we move the bashrc to a backup and then restore
+        await execute('mv ' + bashrc + ' ' + bashrcBak)
+        touch(bashrc)
+        try {
+          await execute('./micromamba shell init -s bash -p ~/micromamba')
+          fs.appendFileSync(profile, '\n' + fs.readFileSync(bashrc, 'utf8'), 'utf8')
+          await execute('mv ' + bashrcBak + ' ' + bashrc)
+        } catch (error) {
+          await execute('mv ' + bashrcBak + ' ' + bashrc)
+          core.setFailed(error.message)
+        }
+      } else {
+        throw 'Platform ' + process.platform + ' not supported.';
+      }
+
+      // final bits of the install
+      await execute('mkdir -p ' + path.join(os.homedir(), 'micromamba/pkgs/'))
+      await execute('source ' + profile + ' && micromamba create --strict-channel-priority -y -f ' + envFilePath)
+      fs.appendFileSync(profile, 'set -eo pipefail\n')
+      fs.appendFileSync(profile, 'micromamba activate ' + envName + '\n')
+      core.endGroup()
+
+      await execute('source ' + profile + ' && micromamba list')
     }
+    else
+    {
+      // handle win32!
+      const powershell_auto_activate_env = `if (!(Test-Path $profile))
+{
+   New-Item -path $profile -type "file" -value "CONTENTPLACEHOLDER"
+   Write-Host "Created new profile and content added"
+}
+else
+{
+  Add-Content -path $profile -value "CONTENTPLACEHOLDER"
+  Write-Host "Profile already exists and new content added"
+}`;
+      const autoactivate = powershell_auto_activate_env.replace(/CONTENTPLACEHOLDER/g, `micromamba activate ${envName}`);
+      core.startGroup(`Installing environment ${envName} from ${envFilePath} ...`);
+      touch(profile)
 
-    // final bits of the install
-    await execute('mkdir -p ' + path.join(os.homedir(), 'micromamba/pkgs/'))
-    await execute('source ' + profile + ' && micromamba create --strict-channel-priority -y -f ' + envFilePath)
-    fs.appendFileSync(profile, 'set -eo pipefail\n')
-    fs.appendFileSync(profile, 'micromamba activate ' + envName + '\n')
-    core.endGroup()
+      await exec_pwsh(`Invoke-Webrequest -URI ${base_url}/win-64/latest -OutFile micromamba.tar.bz2`);
+      await exec_pwsh("C:\\PROGRA~1\\7-Zip\\7z.exe x micromamba.tar.bz2 -aoa");
+      await exec_pwsh("C:\\PROGRA~1\\7-Zip\\7z.exe x micromamba.tar -ttar -aoa -r Library\\bin\\micromamba.exe");
+      await exec_pwsh("MOVE -Force Library\\bin\\micromamba.exe micromamba.exe");
+      await exec_pwsh(".\\micromamba.exe --help");
+      await exec_pwsh(".\\micromamba.exe shell init -s powershell -p $HOME\\micromamba");
+      // Can only init once right now ...
+      // await exec_pwsh(".\\micromamba.exe shell init -s bash -p $HOME\\micromamba");
+      await exec_pwsh("MD $HOME\\micromamba\\pkgs -ea 0");
+      await exec_pwsh(`.\\micromamba.exe create --strict-channel-priority -y -f ${envFilePath}`);
+      await exec_pwsh(autoactivate);
 
-    await execute('source ' + profile + ' && micromamba list')
+      fs.appendFileSync(profile, `micromamba activate ${envName}\n`)
+
+      core.endGroup()
+      await exec_pwsh('micromamba list')
+    }
   } catch (error) {
     core.setFailed(error.message)
   }
@@ -111,8 +162,8 @@ run()
 
 /***/ }),
 
-/***/ 335:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/***/ 351:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
@@ -124,8 +175,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const os = __importStar(__webpack_require__(87));
-const utils_1 = __webpack_require__(427);
+const os = __importStar(__nccwpck_require__(87));
+const utils_1 = __nccwpck_require__(278);
 /**
  * Commands
  *
@@ -197,8 +248,8 @@ function escapeProperty(s) {
 
 /***/ }),
 
-/***/ 257:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/***/ 186:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
@@ -219,11 +270,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const command_1 = __webpack_require__(335);
-const file_command_1 = __webpack_require__(548);
-const utils_1 = __webpack_require__(427);
-const os = __importStar(__webpack_require__(87));
-const path = __importStar(__webpack_require__(622));
+const command_1 = __nccwpck_require__(351);
+const file_command_1 = __nccwpck_require__(717);
+const utils_1 = __nccwpck_require__(278);
+const os = __importStar(__nccwpck_require__(87));
+const path = __importStar(__nccwpck_require__(622));
 /**
  * The code to exit an action
  */
@@ -442,8 +493,8 @@ exports.getState = getState;
 
 /***/ }),
 
-/***/ 548:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/***/ 717:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
@@ -458,9 +509,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const fs = __importStar(__webpack_require__(747));
-const os = __importStar(__webpack_require__(87));
-const utils_1 = __webpack_require__(427);
+const fs = __importStar(__nccwpck_require__(747));
+const os = __importStar(__nccwpck_require__(87));
+const utils_1 = __nccwpck_require__(278);
 function issueCommand(command, message) {
     const filePath = process.env[`GITHUB_${command}`];
     if (!filePath) {
@@ -478,7 +529,7 @@ exports.issueCommand = issueCommand;
 
 /***/ }),
 
-/***/ 427:
+/***/ 278:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -504,8 +555,8 @@ exports.toCommandValue = toCommandValue;
 
 /***/ }),
 
-/***/ 924:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/***/ 990:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
@@ -526,7 +577,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const tr = __importStar(__webpack_require__(680));
+const tr = __importStar(__nccwpck_require__(159));
 /**
  * Exec a command.
  * Output will be streamed to the live console.
@@ -555,8 +606,8 @@ exports.exec = exec;
 
 /***/ }),
 
-/***/ 680:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/***/ 159:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
@@ -577,12 +628,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const os = __importStar(__webpack_require__(87));
-const events = __importStar(__webpack_require__(614));
-const child = __importStar(__webpack_require__(129));
-const path = __importStar(__webpack_require__(622));
-const io = __importStar(__webpack_require__(668));
-const ioUtil = __importStar(__webpack_require__(162));
+const os = __importStar(__nccwpck_require__(87));
+const events = __importStar(__nccwpck_require__(614));
+const child = __importStar(__nccwpck_require__(129));
+const path = __importStar(__nccwpck_require__(622));
+const io = __importStar(__nccwpck_require__(436));
+const ioUtil = __importStar(__nccwpck_require__(962));
 /* eslint-disable @typescript-eslint/unbound-method */
 const IS_WINDOWS = process.platform === 'win32';
 /*
@@ -1162,8 +1213,8 @@ class ExecState extends events.EventEmitter {
 
 /***/ }),
 
-/***/ 162:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/***/ 962:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
@@ -1178,9 +1229,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const assert_1 = __webpack_require__(357);
-const fs = __webpack_require__(747);
-const path = __webpack_require__(622);
+const assert_1 = __nccwpck_require__(357);
+const fs = __nccwpck_require__(747);
+const path = __nccwpck_require__(622);
 _a = fs.promises, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
 exports.IS_WINDOWS = process.platform === 'win32';
 function exists(fsPath) {
@@ -1364,8 +1415,8 @@ function isUnixExecutable(stats) {
 
 /***/ }),
 
-/***/ 668:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/***/ 436:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
@@ -1379,10 +1430,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const childProcess = __webpack_require__(129);
-const path = __webpack_require__(622);
-const util_1 = __webpack_require__(669);
-const ioUtil = __webpack_require__(162);
+const childProcess = __nccwpck_require__(129);
+const path = __nccwpck_require__(622);
+const util_1 = __nccwpck_require__(669);
+const ioUtil = __nccwpck_require__(962);
 const exec = util_1.promisify(childProcess.exec);
 /**
  * Copies a file or folder.
@@ -1661,14 +1712,14 @@ function copyFile(srcFile, destFile, force) {
 
 /***/ }),
 
-/***/ 344:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 917:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 
-var yaml = __webpack_require__(529);
+var yaml = __nccwpck_require__(916);
 
 
 module.exports = yaml;
@@ -1676,15 +1727,15 @@ module.exports = yaml;
 
 /***/ }),
 
-/***/ 529:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 916:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 
-var loader = __webpack_require__(250);
-var dumper = __webpack_require__(610);
+var loader = __nccwpck_require__(190);
+var dumper = __nccwpck_require__(34);
 
 
 function deprecated(name) {
@@ -1694,25 +1745,25 @@ function deprecated(name) {
 }
 
 
-module.exports.Type = __webpack_require__(73);
-module.exports.Schema = __webpack_require__(907);
-module.exports.FAILSAFE_SCHEMA = __webpack_require__(455);
-module.exports.JSON_SCHEMA = __webpack_require__(861);
-module.exports.CORE_SCHEMA = __webpack_require__(912);
-module.exports.DEFAULT_SAFE_SCHEMA = __webpack_require__(874);
-module.exports.DEFAULT_FULL_SCHEMA = __webpack_require__(137);
+module.exports.Type = __nccwpck_require__(967);
+module.exports.Schema = __nccwpck_require__(514);
+module.exports.FAILSAFE_SCHEMA = __nccwpck_require__(37);
+module.exports.JSON_SCHEMA = __nccwpck_require__(571);
+module.exports.CORE_SCHEMA = __nccwpck_require__(183);
+module.exports.DEFAULT_SAFE_SCHEMA = __nccwpck_require__(949);
+module.exports.DEFAULT_FULL_SCHEMA = __nccwpck_require__(874);
 module.exports.load                = loader.load;
 module.exports.loadAll             = loader.loadAll;
 module.exports.safeLoad            = loader.safeLoad;
 module.exports.safeLoadAll         = loader.safeLoadAll;
 module.exports.dump                = dumper.dump;
 module.exports.safeDump            = dumper.safeDump;
-module.exports.YAMLException = __webpack_require__(384);
+module.exports.YAMLException = __nccwpck_require__(199);
 
 // Deprecated schema names from JS-YAML 2.0.x
-module.exports.MINIMAL_SCHEMA = __webpack_require__(455);
-module.exports.SAFE_SCHEMA = __webpack_require__(874);
-module.exports.DEFAULT_SCHEMA = __webpack_require__(137);
+module.exports.MINIMAL_SCHEMA = __nccwpck_require__(37);
+module.exports.SAFE_SCHEMA = __nccwpck_require__(949);
+module.exports.DEFAULT_SCHEMA = __nccwpck_require__(874);
 
 // Deprecated functions from JS-YAML 1.x.x
 module.exports.scan           = deprecated('scan');
@@ -1723,7 +1774,7 @@ module.exports.addConstructor = deprecated('addConstructor');
 
 /***/ }),
 
-/***/ 855:
+/***/ 136:
 /***/ ((module) => {
 
 "use strict";
@@ -1790,18 +1841,18 @@ module.exports.extend         = extend;
 
 /***/ }),
 
-/***/ 610:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 34:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 /*eslint-disable no-use-before-define*/
 
-var common              = __webpack_require__(855);
-var YAMLException       = __webpack_require__(384);
-var DEFAULT_FULL_SCHEMA = __webpack_require__(137);
-var DEFAULT_SAFE_SCHEMA = __webpack_require__(874);
+var common              = __nccwpck_require__(136);
+var YAMLException       = __nccwpck_require__(199);
+var DEFAULT_FULL_SCHEMA = __nccwpck_require__(874);
+var DEFAULT_SAFE_SCHEMA = __nccwpck_require__(949);
 
 var _toString       = Object.prototype.toString;
 var _hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -2648,7 +2699,7 @@ module.exports.safeDump = safeDump;
 
 /***/ }),
 
-/***/ 384:
+/***/ 199:
 /***/ ((module) => {
 
 "use strict";
@@ -2699,19 +2750,19 @@ module.exports = YAMLException;
 
 /***/ }),
 
-/***/ 250:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 190:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 /*eslint-disable max-len,no-use-before-define*/
 
-var common              = __webpack_require__(855);
-var YAMLException       = __webpack_require__(384);
-var Mark                = __webpack_require__(986);
-var DEFAULT_SAFE_SCHEMA = __webpack_require__(874);
-var DEFAULT_FULL_SCHEMA = __webpack_require__(137);
+var common              = __nccwpck_require__(136);
+var YAMLException       = __nccwpck_require__(199);
+var Mark                = __nccwpck_require__(426);
+var DEFAULT_SAFE_SCHEMA = __nccwpck_require__(949);
+var DEFAULT_FULL_SCHEMA = __nccwpck_require__(874);
 
 
 var _hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -4351,14 +4402,14 @@ module.exports.safeLoad    = safeLoad;
 
 /***/ }),
 
-/***/ 986:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 426:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 
-var common = __webpack_require__(855);
+var common = __nccwpck_require__(136);
 
 
 function Mark(name, buffer, position, line, column) {
@@ -4435,17 +4486,17 @@ module.exports = Mark;
 
 /***/ }),
 
-/***/ 907:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 514:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 /*eslint-disable max-len*/
 
-var common        = __webpack_require__(855);
-var YAMLException = __webpack_require__(384);
-var Type          = __webpack_require__(73);
+var common        = __nccwpck_require__(136);
+var YAMLException = __nccwpck_require__(199);
+var Type          = __nccwpck_require__(967);
 
 
 function compileList(schema, name, result) {
@@ -4551,8 +4602,8 @@ module.exports = Schema;
 
 /***/ }),
 
-/***/ 912:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 183:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 // Standard YAML's Core schema.
@@ -4565,20 +4616,20 @@ module.exports = Schema;
 
 
 
-var Schema = __webpack_require__(907);
+var Schema = __nccwpck_require__(514);
 
 
 module.exports = new Schema({
   include: [
-    __webpack_require__(861)
+    __nccwpck_require__(571)
   ]
 });
 
 
 /***/ }),
 
-/***/ 137:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 874:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 // JS-YAML's default schema for `load` function.
@@ -4593,25 +4644,25 @@ module.exports = new Schema({
 
 
 
-var Schema = __webpack_require__(907);
+var Schema = __nccwpck_require__(514);
 
 
 module.exports = Schema.DEFAULT = new Schema({
   include: [
-    __webpack_require__(874)
+    __nccwpck_require__(949)
   ],
   explicit: [
-    __webpack_require__(234),
-    __webpack_require__(118),
-    __webpack_require__(204)
+    __nccwpck_require__(914),
+    __nccwpck_require__(242),
+    __nccwpck_require__(4)
   ]
 });
 
 
 /***/ }),
 
-/***/ 874:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 949:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 // JS-YAML's default schema for `safeLoad` function.
@@ -4624,30 +4675,30 @@ module.exports = Schema.DEFAULT = new Schema({
 
 
 
-var Schema = __webpack_require__(907);
+var Schema = __nccwpck_require__(514);
 
 
 module.exports = new Schema({
   include: [
-    __webpack_require__(912)
+    __nccwpck_require__(183)
   ],
   implicit: [
-    __webpack_require__(551),
-    __webpack_require__(9)
+    __nccwpck_require__(714),
+    __nccwpck_require__(393)
   ],
   explicit: [
-    __webpack_require__(457),
-    __webpack_require__(950),
-    __webpack_require__(564),
-    __webpack_require__(857)
+    __nccwpck_require__(551),
+    __nccwpck_require__(668),
+    __nccwpck_require__(39),
+    __nccwpck_require__(237)
   ]
 });
 
 
 /***/ }),
 
-/***/ 455:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 37:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 // Standard YAML's Failsafe schema.
@@ -4657,22 +4708,22 @@ module.exports = new Schema({
 
 
 
-var Schema = __webpack_require__(907);
+var Schema = __nccwpck_require__(514);
 
 
 module.exports = new Schema({
   explicit: [
-    __webpack_require__(647),
-    __webpack_require__(419),
-    __webpack_require__(188)
+    __nccwpck_require__(672),
+    __nccwpck_require__(490),
+    __nccwpck_require__(173)
   ]
 });
 
 
 /***/ }),
 
-/***/ 861:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 571:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 // Standard YAML's JSON schema.
@@ -4686,31 +4737,31 @@ module.exports = new Schema({
 
 
 
-var Schema = __webpack_require__(907);
+var Schema = __nccwpck_require__(514);
 
 
 module.exports = new Schema({
   include: [
-    __webpack_require__(455)
+    __nccwpck_require__(37)
   ],
   implicit: [
-    __webpack_require__(516),
-    __webpack_require__(681),
-    __webpack_require__(434),
-    __webpack_require__(693)
+    __nccwpck_require__(671),
+    __nccwpck_require__(675),
+    __nccwpck_require__(963),
+    __nccwpck_require__(564)
   ]
 });
 
 
 /***/ }),
 
-/***/ 73:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 967:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var YAMLException = __webpack_require__(384);
+var YAMLException = __nccwpck_require__(199);
 
 var TYPE_CONSTRUCTOR_OPTIONS = [
   'kind',
@@ -4773,8 +4824,8 @@ module.exports = Type;
 
 /***/ }),
 
-/***/ 457:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 551:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
@@ -4789,7 +4840,7 @@ try {
   NodeBuffer = _require('buffer').Buffer;
 } catch (__) {}
 
-var Type       = __webpack_require__(73);
+var Type       = __nccwpck_require__(967);
 
 
 // [ 64, 65, 66 ] -> [ padding, CR, LF ]
@@ -4919,13 +4970,13 @@ module.exports = new Type('tag:yaml.org,2002:binary', {
 
 /***/ }),
 
-/***/ 681:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 675:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var Type = __webpack_require__(73);
+var Type = __nccwpck_require__(967);
 
 function resolveYamlBoolean(data) {
   if (data === null) return false;
@@ -4962,14 +5013,14 @@ module.exports = new Type('tag:yaml.org,2002:bool', {
 
 /***/ }),
 
-/***/ 693:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 564:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var common = __webpack_require__(855);
-var Type   = __webpack_require__(73);
+var common = __nccwpck_require__(136);
+var Type   = __nccwpck_require__(967);
 
 var YAML_FLOAT_PATTERN = new RegExp(
   // 2.5e4, 2.5 and integers
@@ -5086,14 +5137,14 @@ module.exports = new Type('tag:yaml.org,2002:float', {
 
 /***/ }),
 
-/***/ 434:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 963:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var common = __webpack_require__(855);
-var Type   = __webpack_require__(73);
+var common = __nccwpck_require__(136);
+var Type   = __nccwpck_require__(967);
 
 function isHexCode(c) {
   return ((0x30/* 0 */ <= c) && (c <= 0x39/* 9 */)) ||
@@ -5267,8 +5318,8 @@ module.exports = new Type('tag:yaml.org,2002:int', {
 
 /***/ }),
 
-/***/ 204:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 4:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
@@ -5292,7 +5343,7 @@ try {
   if (typeof window !== 'undefined') esprima = window.esprima;
 }
 
-var Type = __webpack_require__(73);
+var Type = __nccwpck_require__(967);
 
 function resolveJavascriptFunction(data) {
   if (data === null) return false;
@@ -5368,13 +5419,13 @@ module.exports = new Type('tag:yaml.org,2002:js/function', {
 
 /***/ }),
 
-/***/ 118:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 242:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var Type = __webpack_require__(73);
+var Type = __nccwpck_require__(967);
 
 function resolveJavascriptRegExp(data) {
   if (data === null) return false;
@@ -5436,13 +5487,13 @@ module.exports = new Type('tag:yaml.org,2002:js/regexp', {
 
 /***/ }),
 
-/***/ 234:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 914:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var Type = __webpack_require__(73);
+var Type = __nccwpck_require__(967);
 
 function resolveJavascriptUndefined() {
   return true;
@@ -5472,13 +5523,13 @@ module.exports = new Type('tag:yaml.org,2002:js/undefined', {
 
 /***/ }),
 
-/***/ 188:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 173:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var Type = __webpack_require__(73);
+var Type = __nccwpck_require__(967);
 
 module.exports = new Type('tag:yaml.org,2002:map', {
   kind: 'mapping',
@@ -5488,13 +5539,13 @@ module.exports = new Type('tag:yaml.org,2002:map', {
 
 /***/ }),
 
-/***/ 9:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 393:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var Type = __webpack_require__(73);
+var Type = __nccwpck_require__(967);
 
 function resolveYamlMerge(data) {
   return data === '<<' || data === null;
@@ -5508,13 +5559,13 @@ module.exports = new Type('tag:yaml.org,2002:merge', {
 
 /***/ }),
 
-/***/ 516:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 671:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var Type = __webpack_require__(73);
+var Type = __nccwpck_require__(967);
 
 function resolveYamlNull(data) {
   if (data === null) return true;
@@ -5550,13 +5601,13 @@ module.exports = new Type('tag:yaml.org,2002:null', {
 
 /***/ }),
 
-/***/ 950:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 668:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var Type = __webpack_require__(73);
+var Type = __nccwpck_require__(967);
 
 var _hasOwnProperty = Object.prototype.hasOwnProperty;
 var _toString       = Object.prototype.toString;
@@ -5602,13 +5653,13 @@ module.exports = new Type('tag:yaml.org,2002:omap', {
 
 /***/ }),
 
-/***/ 564:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 39:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var Type = __webpack_require__(73);
+var Type = __nccwpck_require__(967);
 
 var _toString = Object.prototype.toString;
 
@@ -5663,13 +5714,13 @@ module.exports = new Type('tag:yaml.org,2002:pairs', {
 
 /***/ }),
 
-/***/ 419:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 490:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var Type = __webpack_require__(73);
+var Type = __nccwpck_require__(967);
 
 module.exports = new Type('tag:yaml.org,2002:seq', {
   kind: 'sequence',
@@ -5679,13 +5730,13 @@ module.exports = new Type('tag:yaml.org,2002:seq', {
 
 /***/ }),
 
-/***/ 857:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 237:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var Type = __webpack_require__(73);
+var Type = __nccwpck_require__(967);
 
 var _hasOwnProperty = Object.prototype.hasOwnProperty;
 
@@ -5716,13 +5767,13 @@ module.exports = new Type('tag:yaml.org,2002:set', {
 
 /***/ }),
 
-/***/ 647:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 672:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var Type = __webpack_require__(73);
+var Type = __nccwpck_require__(967);
 
 module.exports = new Type('tag:yaml.org,2002:str', {
   kind: 'scalar',
@@ -5732,13 +5783,13 @@ module.exports = new Type('tag:yaml.org,2002:str', {
 
 /***/ }),
 
-/***/ 551:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 714:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var Type = __webpack_require__(73);
+var Type = __nccwpck_require__(967);
 
 var YAML_DATE_REGEXP = new RegExp(
   '^([0-9][0-9][0-9][0-9])'          + // [1] year
@@ -5898,7 +5949,7 @@ module.exports = require("util");;
 /******/ 	var __webpack_module_cache__ = {};
 /******/ 	
 /******/ 	// The require function
-/******/ 	function __webpack_require__(moduleId) {
+/******/ 	function __nccwpck_require__(moduleId) {
 /******/ 		// Check if module is in cache
 /******/ 		if(__webpack_module_cache__[moduleId]) {
 /******/ 			return __webpack_module_cache__[moduleId].exports;
@@ -5913,7 +5964,7 @@ module.exports = require("util");;
 /******/ 		// Execute the module function
 /******/ 		var threw = true;
 /******/ 		try {
-/******/ 			__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/ 			__webpack_modules__[moduleId].call(module.exports, module, module.exports, __nccwpck_require__);
 /******/ 			threw = false;
 /******/ 		} finally {
 /******/ 			if(threw) delete __webpack_module_cache__[moduleId];
@@ -5926,10 +5977,10 @@ module.exports = require("util");;
 /************************************************************************/
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
-/******/ 	__webpack_require__.ab = __dirname + "/";/************************************************************************/
+/******/ 	__nccwpck_require__.ab = __dirname + "/";/************************************************************************/
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(89);
+/******/ 	return __nccwpck_require__(932);
 /******/ })()
 ;

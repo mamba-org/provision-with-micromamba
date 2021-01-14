@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
     name: test
     steps:
       - uses: actions/checkout@v2
@@ -19,7 +19,15 @@ jobs:
       - name: install mamba
         uses: ./
 
-      - name: run python
+      - name: run python in powershell
+        shell: powershell
+        run: |
+          python -VV
+          python -c "import numpy"
+        if: runner.os == 'Windows'
+      - name: run python in bash
         shell: bash -l {0}
         run: |
+          python -VV
           python -c "import numpy"
+        if: runner.os != 'Windows'
