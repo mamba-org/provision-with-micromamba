@@ -25,9 +25,11 @@ jobs:
           python -VV
           python -c "import numpy"
         if: runner.os == 'Windows'
+
       - name: run python in bash
         shell: bash -l {0}
         run: |
           python -VV
           python -c "import numpy"
+          micromamba --help
         if: runner.os != 'Windows'
