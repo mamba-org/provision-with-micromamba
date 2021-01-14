@@ -31,5 +31,5 @@ jobs:
         run: |
           python -VV
           python -c "import numpy"
-          echo `which micromamba`
+          micromamba --help
         if: runner.os != 'Windows'
