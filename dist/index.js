@@ -141,7 +141,7 @@ else
       // Can only init once right now ...
       // await execPwsh(".\\micromamba.exe shell init -s bash -p $HOME\\micromamba")
       await execPwsh('MD $HOME\\micromamba\\pkgs -ea 0')
-      await execPwsh(`.\\micromamba.exe create --strict-channel-priority -y -f ${envFilePath}`)
+      await execPwsh(`.\\micromamba.exe create -n ` + envName + ` --strict-channel-priority -y -f ${envFilePath}`)
       await execPwsh(autoactivate)
 
       fs.appendFileSync(profile, `micromamba activate ${envName}\n`)
