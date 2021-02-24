@@ -8,6 +8,9 @@ inputs:
     description: 'the environment.yml file for the conda environment'
     required: true
     default: environment.yml
+  environment-name:
+    description: 'the name of the conda environment (defaults to name from the environment.yml file)'
+    required: false
 runs:
   using: 'node12'
   main: 'dist/index.js'
