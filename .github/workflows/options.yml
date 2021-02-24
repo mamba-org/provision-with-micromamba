@@ -37,12 +37,6 @@ jobs:
           micromamba --help
         if: runner.os != 'Windows'
 
-      - name: debug environment name in powershell
-        shell: powershell
-        run: |
-          python -c "import os; env = os.environ['CONDA_PREFIX']; print(env)"
-        if: runner.os == 'Windows'
-
       - name: test environment name in powershell
         shell: powershell
         run: |
