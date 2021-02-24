@@ -110,7 +110,7 @@ async function run () {
 
       // final bits of the install
       await execute('mkdir -p ' + path.join(os.homedir(), 'micromamba/pkgs/'))
-      await execute('source ' + profile + ' && micromamba create --strict-channel-priority -y -f ' + envFilePath)
+      await execute('source ' + profile + ' && micromamba create -n ' + envName + '--strict-channel-priority -y -f ' + envFilePath)
       fs.appendFileSync(profile, 'set -eo pipefail\n')
       fs.appendFileSync(profile, 'micromamba activate ' + envName + '\n')
       core.endGroup()
@@ -5944,7 +5944,7 @@ module.exports = require("util");;
 /************************************************************************/
 /******/ 	// The module cache
 /******/ 	var __webpack_module_cache__ = {};
-/******/ 	
+/******/
 /******/ 	// The require function
 /******/ 	function __nccwpck_require__(moduleId) {
 /******/ 		// Check if module is in cache
@@ -5957,7 +5957,7 @@ module.exports = require("util");;
 /******/ 			// no module.loaded needed
 /******/ 			exports: {}
 /******/ 		};
-/******/ 	
+/******/
 /******/ 		// Execute the module function
 /******/ 		var threw = true;
 /******/ 		try {
@@ -5966,14 +5966,14 @@ module.exports = require("util");;
 /******/ 		} finally {
 /******/ 			if(threw) delete __webpack_module_cache__[moduleId];
 /******/ 		}
-/******/ 	
+/******/
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
-/******/ 	
+/******/
 /************************************************************************/
 /******/ 	/* webpack/runtime/compat */
-/******/ 	
+/******/
 /******/ 	__nccwpck_require__.ab = __dirname + "/";/************************************************************************/
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
