@@ -110,7 +110,7 @@ async function run () {
 
       // final bits of the install
       await execute('mkdir -p ' + path.join(os.homedir(), 'micromamba/pkgs/'))
-      await execute('source ' + profile + ' && micromamba create -n ' + envName + '--strict-channel-priority -y -f ' + envFilePath)
+      await execute('source ' + profile + ' && micromamba create -n ' + envName + ' --strict-channel-priority -y -f ' + envFilePath)
       fs.appendFileSync(profile, 'set -eo pipefail\n')
       fs.appendFileSync(profile, 'micromamba activate ' + envName + '\n')
       core.endGroup()
