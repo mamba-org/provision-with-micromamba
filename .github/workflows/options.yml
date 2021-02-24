@@ -46,7 +46,7 @@ jobs:
       - name: test environment name in powershell
         shell: powershell
         run: |
-          python -c "import os; env = os.environ['CONDA_PREFIX'].split('\')[-1]; assert env == 'myenv'"
+          python -c "import os; env = os.environ['CONDA_PREFIX'].split('\\')[-1]; assert env == 'myenv'"
         if: runner.os == 'Windows'
 
       - name: test environment name in bash
