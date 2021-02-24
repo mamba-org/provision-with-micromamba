@@ -27,6 +27,7 @@ jobs:
         run: |
           python -VV
           python -c "import numpy"
+          micromamba info
         if: runner.os == 'Windows'
 
       - name: run python in bash
@@ -35,16 +36,17 @@ jobs:
           python -VV
           python -c "import numpy"
           micromamba --help
+          micromamba info
         if: runner.os != 'Windows'
 
       - name: test environment name in powershell
         shell: powershell
         run: |
-          python -c "import subprocess; ret = subprocess.check_output(['mamba', 'info']).decode('utf-8'); assert ret.split('active environment : ')[1].split('/')[-1].split('\n')[0] == 'myenv'"
+          python -c "import subprocess; ret = subprocess.check_output(['micromamba', 'info']).decode('utf-8'); assert ret.split('active environment : ')[1].split('/')[-1].split('\n')[0] == 'myenv'"
         if: runner.os == 'Windows'
 
       - name: test environment name in bash
         shell: bash -l {0}
         run: |
-          python -c "import subprocess; ret = subprocess.check_output(['mamba', 'info']).decode('utf-8'); assert ret.split('active environment : ')[1].split('/')[-1].split('\n')[0] == 'myenv'"
+          python -c "import subprocess; ret = subprocess.check_output(['micromamba', 'info']).decode('utf-8'); assert ret.split('active environment : ')[1].split('/')[-1].split('\n')[0] == 'myenv'"
         if: runner.os != 'Windows'
