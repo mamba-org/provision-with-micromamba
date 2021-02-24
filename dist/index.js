@@ -50,7 +50,7 @@ async function run () {
     const envFileName = core.getInput('environment-file')
     const envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', envFileName)
     const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
-    const envName = core.getInput('environment-name') || envYaml.name
+    const envName = envYaml.name
     const condarc = path.join(os.homedir(), '.condarc')
     const profile = path.join(os.homedir(), '.bash_profile')
     const bashrc = path.join(os.homedir(), '.bashrc')
