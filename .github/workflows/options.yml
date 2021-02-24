@@ -19,8 +19,8 @@ jobs:
       - name: install mamba
         uses: ./
         with:
-          - environment-file: environment.yml
-          - environment-name: myenv
+          environment-file: environment.yml
+          environment-name: myenv
 
       - name: run python in powershell
         shell: powershell
