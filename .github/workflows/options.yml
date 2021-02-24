@@ -36,3 +36,15 @@ jobs:
           python -c "import numpy"
           micromamba --help
         if: runner.os != 'Windows'
+
+      - name: test environment name in powershell
+        shell: powershell
+        run: |
+          python -c "import subprocess; ret = subprocess.check_output(['conda', 'info']).decode('utf-8'); assert ret.split('active environment : ')[1].split('\n')[0] == 'myenv'"
+        if: runner.os == 'Windows'
+
+      - name: test environment name in bash
+        shell: bash -l {0}
+        run: |
+          python -c "import subprocess; ret = subprocess.check_output(['conda', 'info']).decode('utf-8'); assert ret.split('active environment : ')[1].split('\n')[0] == 'myenv'"
+        if: runner.os != 'Windows'
