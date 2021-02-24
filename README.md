@@ -9,6 +9,12 @@ GitHub Action to provision a CI instance using micromamba
 
 **Optional** The the `environment.yml` file for the conda environment. Default is `environment.yml`
 
+### `environment-name`
+
+**Optional** Specify a custom environment name, 
+to overwrite the name specified in the `environment.yml`, 
+or in in case it was not specified in the `environment.yml`.
+
 ## Example usage
 
 ```
@@ -37,6 +43,27 @@ jobs:
         shell: powershell
         run: |
           python -c "import numpy"
+```
+
+## Example with customization
+
+```
+name: test
+on:
+  push: null
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: test
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install mamba
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          - environment-file: myenv.yaml
+          - environment-name: myenv
 ```
 
 ## Development
