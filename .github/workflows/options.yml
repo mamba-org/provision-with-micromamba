@@ -1,0 +1,38 @@
+name: test
+on:
+  push:
+    branches:
+      - main
+  pull_request: null
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    name: test
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install mamba
+        uses: ./
+        with:
+          - environment-file: environment.yml
+          - environment-name: myenv
+
+      - name: run python in powershell
+        shell: powershell
+        run: |
+          python -VV
+          python -c "import numpy"
+        if: runner.os == 'Windows'
+
+      - name: run python in bash
+        shell: bash -l {0}
+        run: |
+          python -VV
+          python -c "import numpy"
+          micromamba --help
+        if: runner.os != 'Windows'
