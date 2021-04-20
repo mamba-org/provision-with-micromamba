@@ -109,7 +109,7 @@ async function run () {
       fs.appendFileSync(profile, 'micromamba activate ' + envName + '\n')
       core.endGroup()
 
-      await execute('source ' + profile + ' && micromamba list')
+      await execute('source ' + profile + ' && micromamba info && micromamba list')
     } else {
       // handle win32!
       const powershellAutoActivateEnv = `if (!(Test-Path $profile))
@@ -141,6 +141,7 @@ else
       fs.appendFileSync(profile, `micromamba activate ${envName}\n`)
 
       core.endGroup()
+      await execPwsh('micromamba info')
       await execPwsh('micromamba list')
     }
   } catch (error) {
