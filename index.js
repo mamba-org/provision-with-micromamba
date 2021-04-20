@@ -51,15 +51,16 @@ async function run () {
     const bashrcBak = path.join(os.homedir(), '.bashrc.actionbak')
     const micromambaLoc = path.join(os.homedir(), 'micromamba-bin/micromamba')
 
+    touch(condarc)
+    fs.appendFileSync(condarc, 'always_yes: true\n')
+    fs.appendFileSync(condarc, 'show_channel_urls: true\n')
+    fs.appendFileSync(condarc, 'channel_priority: strict\n')
+    if (envYaml.channels !== undefined) {
+      fs.appendFileSync(condarc, 'channels: [' + envYaml.channels.join(', ') + ']\n')
+    }
+
     if (process.platform !== 'win32') {
-      core.startGroup('Configuring conda...')
-      touch(condarc)
-      fs.appendFileSync(condarc, 'always_yes: true\n')
-      fs.appendFileSync(condarc, 'show_channel_urls: true\n')
-      fs.appendFileSync(condarc, 'channel_priority: strict\n')
-      if (envYaml.channels !== undefined) {
-        fs.appendFileSync(condarc, 'channels: [' + envYaml.channels.join(', ') + ']\n')
-      }
+      core.startGroup('Configuring micromamba...')
       await execute('cat ' + condarc)
       core.endGroup()
 
