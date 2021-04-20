@@ -11,6 +11,11 @@ inputs:
   environment-name:
     description: 'the name of the conda environment (defaults to name from the environment.yml file)'
     required: false
+  micromamba-version:
+    description: 'version of micromamba to use (default: 0.9.2). Use "latest" for bleeding edge.'
+    required: false
+    default: "0.9.2"
+
 runs:
   using: 'node12'
   main: 'dist/index.js'
