@@ -48,6 +48,7 @@ async function run () {
   try {
     const baseUrl = 'https://micro.mamba.pm/api/micromamba'
     const envFileName = core.getInput('environment-file')
+    const micromambaVersion = core.getInput('micromamba-version')
     const envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', envFileName)
     const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
     const envName = core.getInput('environment-name') || envYaml.name
@@ -78,18 +79,18 @@ async function run () {
       if (process.platform === 'darwin') {
         // macos
         try {
-          await executeNoCatch(`curl -Ls ${baseUrl}/osx-64/latest | tar -xvjO bin/micromamba > ${micromambaLoc}`)
+          await executeNoCatch(`curl -Ls ${baseUrl}/osx-64/${micromambaVersion} | tar -xvjO bin/micromamba > ${micromambaLoc}`)
         } catch (error) {
-          await execute(`curl -Ls ${baseUrl}/osx-64/latest | tar -xvzO bin/micromamba > ${micromambaLoc}`)
+          await execute(`curl -Ls ${baseUrl}/osx-64/${micromambaVersion} | tar -xvzO bin/micromamba > ${micromambaLoc}`)
         }
         await execute(`chmod u+x ${micromambaLoc}`)
         await execute(`${micromambaLoc} shell init -s bash -p ~/micromamba`)
       } else if (process.platform === 'linux') {
         // linux
         try {
-          await executeNoCatch(`wget -qO- ${baseUrl}/linux-64/latest | tar -xvjO bin/micromamba > ${micromambaLoc}`)
+          await executeNoCatch(`wget -qO- ${baseUrl}/linux-64/${micromambaVersion} | tar -xvjO bin/micromamba > ${micromambaLoc}`)
         } catch (error) {
-          await execute(`wget -qO- ${baseUrl}/linux-64/latest | tar -xvzO bin/micromamba > ${micromambaLoc}`)
+          await execute(`wget -qO- ${baseUrl}/linux-64/${micromambaVersion} | tar -xvzO bin/micromamba > ${micromambaLoc}`)
         }
         await execute(`chmod u+x ${micromambaLoc}`)
 
@@ -132,7 +133,7 @@ else
       core.startGroup(`Installing environment ${envName} from ${envFilePath} ...`)
       touch(profile)
 
-      await execPwsh(`Invoke-Webrequest -URI ${baseUrl}/win-64/latest -OutFile micromamba.tar.bz2`)
+      await execPwsh(`Invoke-Webrequest -URI ${baseUrl}/win-64/${micromambaVersion} -OutFile micromamba.tar.bz2`)
       await execPwsh('C:\\PROGRA~1\\7-Zip\\7z.exe x micromamba.tar.bz2 -aoa')
       await execPwsh('C:\\PROGRA~1\\7-Zip\\7z.exe x micromamba.tar -ttar -aoa -r Library\\bin\\micromamba.exe')
       await execPwsh('MOVE -Force Library\\bin\\micromamba.exe micromamba.exe')

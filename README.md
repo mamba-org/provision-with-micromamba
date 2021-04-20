@@ -15,6 +15,10 @@ GitHub Action to provision a CI instance using micromamba
 to overwrite the name specified in the `environment.yml`, 
 or in in case it was not specified in the `environment.yml`.
 
+### `micromamba-version`
+
+**Optional** Specifiy a custom micromamba version. Use `"latest"` for bleeding edge.
+
 ## Example usage
 
 ```
