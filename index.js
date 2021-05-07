@@ -59,7 +59,7 @@ async function run () {
       fs.appendFileSync(condarc, 'channels: [' + envYaml.channels.join(', ') + ']\n')
     }
 
-    if (process.platform !== 'win32') {
+    if (process.platform !== 'win32' || (process.platform !== 'win32' && process.shell === 'bash')) {
       core.startGroup('Configuring micromamba...')
       await execute('cat ' + condarc)
       core.endGroup()
@@ -70,7 +70,16 @@ async function run () {
 
       await execute('mkdir -p ' + path.join(os.homedir(), 'micromamba-bin/'))
 
-      if (process.platform === 'darwin') {
+      if (process.platform === 'win32') {
+        // win + bash
+        try {
+          await executeNoCatch(`curl -Ls ${baseUrl}/win-64/${micromambaVersion} | tar -xvjO bin/micromamba > ${micromambaLoc}`)
+        } catch (error) {
+          await execute(`curl -Ls ${baseUrl}/win-64/${micromambaVersion} | tar -xvzO bin/micromamba > ${micromambaLoc}`)
+        }
+        await execute(`chmod u+x ${micromambaLoc}`)
+        await execute(`${micromambaLoc} shell init -s bash -p ~/micromamba`)
+      } else if (process.platform === 'darwin') {
         // macos
         try {
           await executeNoCatch(`curl -Ls ${baseUrl}/osx-64/${micromambaVersion} | tar -xvjO bin/micromamba > ${micromambaLoc}`)
