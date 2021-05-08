@@ -67,7 +67,12 @@ async function run () {
     }
 
     console.log(process.platform)
-    console.log(process.shell)
+
+    var propValue;
+    for(var propName in process) {
+        propValue = nyc[propName]
+        console.log(propName,propValue);
+    }
 
     if (process.platform !== 'win32' || (process.platform !== 'win32' && process.shell === 'bash')) {
       core.startGroup('Configuring micromamba...')
