@@ -63,7 +63,7 @@ async function run () {
 
     var propValue;
     for(var propName in process) {
-        propValue = nyc[propName]
+        propValue = process[propName]
         console.log(propName,propValue);
     }
 
