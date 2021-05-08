@@ -58,17 +58,27 @@ async function run () {
     const bashrcBak = path.join(os.homedir(), '.bashrc.actionbak')
     const micromambaLoc = path.join(os.homedir(), 'micromamba-bin/micromamba')
 
-    if (process.platform !== 'win32') {
-      core.startGroup('Configuring conda...')
-      touch(condarc)
-      fs.appendFileSync(condarc, 'always_yes: true\n')
-      fs.appendFileSync(condarc, 'show_channel_urls: true\n')
-      fs.appendFileSync(condarc, 'channel_priority: strict\n')
-      if (envYaml.channels !== undefined) {
-        fs.appendFileSync(condarc, 'channels: [' + envYaml.channels.join(', ') + ']\n')
-      }
+    core.startGroup('Configuring micromamba...')
+    touch(condarc)
+    fs.appendFileSync(condarc, 'always_yes: true\n')
+    fs.appendFileSync(condarc, 'show_channel_urls: true\n')
+    fs.appendFileSync(condarc, 'channel_priority: strict\n')
+    if (envYaml.channels !== undefined) {
+      fs.appendFileSync(condarc, 'channels: [' + envYaml.channels.join(', ') + ']\n')
+    }
+    if (process.platform !== 'win32')
+    {
       await execute('cat ' + condarc)
-      core.endGroup()
+    }
+    else
+    {
+      await execute('cat $(cygpath "' + condarc + '")')
+
+      // await execute('type ' + condarc)
+    }
+    core.endGroup()
+
+    if (process.platform !== 'win32') {
 
       core.startGroup('Installing environment ' + envName + ' from ' + envFilePath + ' ...')
 
@@ -84,7 +94,10 @@ async function run () {
           await execute(`curl -Ls ${baseUrl}/osx-64/${micromambaVersion} | tar -xvzO bin/micromamba > ${micromambaLoc}`)
         }
         await execute(`chmod u+x ${micromambaLoc}`)
-        await execute(`${micromambaLoc} shell init -s bash -p ~/micromamba`)
+        await execute(`${micromambaLoc} shell init -s bash -p ~/micromamba -y`)
+        // TODO need to fix a check in micromamba so that this works
+        // https://github.com/mamba-org/mamba/issues/925
+        // await execute(`${micromambaLoc} shell init -s zsh -p ~/micromamba -y`)
       } else if (process.platform === 'linux') {
         // linux
         try {
@@ -98,7 +111,8 @@ async function run () {
         await execute('mv ' + bashrc + ' ' + bashrcBak)
         touch(bashrc)
         try {
-          await execute(`${micromambaLoc} shell init -s bash -p ~/micromamba`)
+          await execute(`${micromambaLoc} shell init -s bash -p ~/micromamba -y`)
+          await execute(`${micromambaLoc} shell init -s zsh -p ~/micromamba -y`)
           fs.appendFileSync(profile, '\n' + fs.readFileSync(bashrc, 'utf8'), 'utf8')
           await execute('mv ' + bashrcBak + ' ' + bashrc)
         } catch (error) {
@@ -139,6 +153,8 @@ else
       await execPwsh('MOVE -Force Library\\bin\\micromamba.exe micromamba.exe')
       await execPwsh('.\\micromamba.exe --help')
       await execPwsh('.\\micromamba.exe shell init -s powershell -p $HOME\\micromamba')
+      await execPwsh('.\\micromamba.exe shell init -s bash -p ~\\micromamba -y')
+      await execPwsh('.\\micromamba.exe shell init -s cmd.exe -p ~\\micromamba -y')
       // Can only init once right now ...
       // await execPwsh(".\\micromamba.exe shell init -s bash -p $HOME\\micromamba")
       await execPwsh('MD $HOME\\micromamba\\pkgs -ea 0')
