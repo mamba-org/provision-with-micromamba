@@ -59,6 +59,9 @@ async function run () {
       fs.appendFileSync(condarc, 'channels: [' + envYaml.channels.join(', ') + ']\n')
     }
 
+    print(process.platform)
+    print(process.shell)
+
     if (process.platform !== 'win32' || (process.platform !== 'win32' && process.shell === 'bash')) {
       core.startGroup('Configuring micromamba...')
       await execute('cat ' + condarc)
