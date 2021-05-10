@@ -1,0 +1,38 @@
+name: bash
+on:
+  push:
+    branches:
+      - main
+  pull_request: null
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    name: bash
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install mamba
+        uses: ./
+        with:
+          environment-file: environment.yml
+          environment-name: myenv
+
+      - name: run python
+        run: |
+          python -VV
+          python -c "import numpy"
+          micromamba --help
+
+      - name: test environment name
+        run: |
+          python -c "import os; env = os.path.basename(os.environ['CONDA_PREFIX']); assert env == 'myenv'"
