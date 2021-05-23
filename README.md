@@ -66,8 +66,8 @@ jobs:
       - name: install mamba
         uses: mamba-org/provision-with-micromamba@main
         with:
-          - environment-file: myenv.yaml
-          - environment-name: myenv
+          environment-file: myenv.yaml
+          environment-name: myenv
 ```
 
 ## Development
