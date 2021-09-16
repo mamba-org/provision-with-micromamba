@@ -148,8 +148,10 @@ else
       touch(profile)
 
       await execPwsh(`Invoke-Webrequest -URI ${baseUrl}/win-64/${micromambaVersion} -OutFile ~\\micromamba.tar.bz2`)
-      await execPwsh('$env:Path = (get-item (get-command git).Path).Directory.parent.FullName +"\\usr\\bin;" + $env:Path')
-      await execPwsh('tar.exe -xvjf ~/micromamba.tar.bz2 --strip-components 2 -C ~ Library/bin/micromamba.exe')
+      await execPwsh(
+        '$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
+        'tar.exe -xvjf ~/micromamba.tar.bz2 --strip-components 2 -C ~ Library/bin/micromamba.exe'
+      )
       await execPwsh('~\\micromamba.exe --help')
       await execPwsh('~\\micromamba.exe shell init -s powershell -p $HOME\\micromamba')
       await execPwsh('~\\micromamba.exe shell init -s bash -p ~\\micromamba -y')
