@@ -28,7 +28,7 @@ jobs:
         if: runner.os == 'Windows'
 
       - name: run python in cmd.exe
-        shell: cmd
+        shell: cmd /C call {0}
         run: |
           python -VV
           python -c "import numpy"
