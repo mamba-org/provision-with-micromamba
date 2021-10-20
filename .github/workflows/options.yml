@@ -72,12 +72,12 @@ jobs:
         shell: powershell
         run: |
           pytest --version
-          python -c "import pytest; assert pytest.__version__.startswith(${{ matrix.pytest }})"
+          python -c "import pytest; assert pytest.__version__.startswith(str(${{ matrix.pytest }}))"
         if: runner.os == 'Windows'
 
       - name: check pytest version in bash
         shell: bash -l {0}
         run: |
           pytest --version
-          python -c "import pytest; assert pytest.__version__.startswith(${{ matrix.pytest }})"
+          python -c "import pytest; assert pytest.__version__.startswith(str(${{ matrix.pytest }}))"
         if: runner.os != 'Windows'
