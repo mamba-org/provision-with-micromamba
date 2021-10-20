@@ -1,4 +1,5 @@
 # provision-with-micromamba
+
 [![test](https://github.com/mamba-org/provision-with-micromamba/workflows/test/badge.svg)](https://github.com/mamba-org/provision-with-micromamba/actions?query=workflow%3Atest)
 
 GitHub Action to provision a CI instance using micromamba
@@ -11,13 +12,19 @@ GitHub Action to provision a CI instance using micromamba
 
 ### `environment-name`
 
-**Optional** Specify a custom environment name, 
-to overwrite the name specified in the `environment.yml`, 
+**Optional** Specify a custom environment name,
+to overwrite the name specified in the `environment.yml`,
 or in in case it was not specified in the `environment.yml`.
 
 ### `micromamba-version`
 
 **Optional** Specifiy a custom micromamba version. Use `"latest"` for bleeding edge.
+
+### `extra-specs`
+
+**Optional** Specifiy additional specifications (packages) to install. Pretty useful when using matrix builds to pin versions of a test/run dependency.
+
+Note: for multiple packages, use multiline syntax (see examples below)
 
 ## Example usage
 
@@ -43,7 +50,7 @@ jobs:
         shell: bash -l {0}
         run: |
           python -c "import numpy"
-      
+
       # windows
       - name: run python
         shell: powershell
@@ -74,6 +81,9 @@ jobs:
         with:
           environment-file: myenv.yaml
           environment-name: myenv
+          extra-specs: |
+            python=3.7
+            pytest<=6.1
 ```
 
 ## IMPORTANT
@@ -123,7 +133,6 @@ Find the reasons below (taken from [setup-miniconda](https://github.com/conda-in
   defined in `environment.yaml`, otherwise the conda solver might find conflicts
   and result in very long install times.
 - Conda activation does not correctly work on `sh`. Please use `bash`.
-
 
 ## Development
 

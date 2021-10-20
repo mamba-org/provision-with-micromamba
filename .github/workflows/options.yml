@@ -12,6 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
+        pytest: ["6.1", "6.2"]
     name: option
     steps:
       - uses: actions/checkout@v2
@@ -21,12 +22,16 @@ jobs:
         with:
           environment-file: environment.yml
           environment-name: myenv
+          extra-specs: |
+            pytest=${{ matrix.pytest }}
+            python=3.8.8
 
       - name: run python in powershell
         shell: powershell
         run: |
           python -VV
           python -c "import numpy"
+          micromamba --help
         if: runner.os == 'Windows'
 
       - name: run python in bash
@@ -47,4 +52,32 @@ jobs:
         shell: bash -l {0}
         run: |
           python -c "import os; env = os.environ['CONDA_PREFIX'].split('/')[-1]; assert env == 'myenv'"
+        if: runner.os != 'Windows'
+
+      - name: check python version in powershell
+        shell: powershell
+        run: |
+          python --version
+          python -c "import platform; assert platform.python_version() == '3.8.8'"
+        if: runner.os == 'Windows'
+
+      - name: check python version in bash
+        shell: bash -l {0}
+        run: |
+          python --version
+          python -c "import platform; assert platform.python_version() == '3.8.8'"
+        if: runner.os != 'Windows'
+
+      - name: check pytest version in powershell
+        shell: powershell
+        run: |
+          pytest --version
+          python -c "import pytest; assert pytest.__version__.startswith(str(${{ matrix.pytest }}))"
+        if: runner.os == 'Windows'
+
+      - name: check pytest version in bash
+        shell: bash -l {0}
+        run: |
+          pytest --version
+          python -c "import pytest; assert pytest.__version__.startswith(str(${{ matrix.pytest }}))"
         if: runner.os != 'Windows'

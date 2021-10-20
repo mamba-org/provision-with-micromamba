@@ -51,6 +51,7 @@ async function run () {
     const micromambaVersion = core.getInput('micromamba-version')
     const envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', envFileName)
     const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
+    const extraSpecs = core.getInput('extra-specs').split("\n").filter(x => x !== "");
     const envName = core.getInput('environment-name') || envYaml.name
     const condarc = path.join(os.homedir(), '.condarc')
     const profile = path.join(os.homedir(), '.bash_profile')
@@ -77,6 +78,10 @@ async function run () {
       // await execute('type ' + condarc)
     }
     core.endGroup()
+
+    const quotedExtraSpecsStr = extraSpecs.map(function(e) { 
+      return '"' + e + '"';
+    }).join(" ");
 
     if (process.platform !== 'win32') {
 
@@ -125,7 +130,7 @@ async function run () {
 
       // final bits of the install
       await execute('mkdir -p ' + path.join(os.homedir(), 'micromamba/pkgs/'))
-      await execute('source ' + profile + ' && micromamba create -n ' + envName + ' --strict-channel-priority -y -f ' + envFilePath)
+      await execute('source ' + profile + ' && micromamba create -n ' + envName + ' ' + quotedExtraSpecsStr + ' --strict-channel-priority -y -f ' + envFilePath)
       fs.appendFileSync(profile, 'set -eo pipefail\n')
       fs.appendFileSync(profile, 'micromamba activate ' + envName + '\n')
       core.endGroup()
@@ -159,7 +164,7 @@ else
       // Can only init once right now ...
       // await execPwsh("~\\micromamba.exe shell init -s bash -p $HOME\\micromamba")
       await execPwsh('MD $HOME\\micromamba\\pkgs -ea 0')
-      await execPwsh(`~\\micromamba.exe create -n ` + envName + ` --strict-channel-priority -y -f ${envFilePath}`)
+      await execPwsh(`~\\micromamba.exe create -n ` + envName + ' ' + quotedExtraSpecsStr + ` --strict-channel-priority -y -f ${envFilePath}`)
       await execPwsh(autoactivate)
 
       fs.appendFileSync(profile, `micromamba activate ${envName}\n`)
