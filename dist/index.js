@@ -94,9 +94,9 @@ async function run () {
       if (process.platform === 'darwin') {
         // macos
         try {
-          await executeNoCatch(`curl -Ls ${baseUrl}/osx-64/${micromambaVersion} | tar -xvjO bin/micromamba > ${micromambaLoc}`)
+          await executeNoCatch(`curl -Ls --retry 5 --retry-delay 1 ${baseUrl}/osx-64/${micromambaVersion} | tar -xvjO bin/micromamba > ${micromambaLoc}`)
         } catch (error) {
-          await execute(`curl -Ls ${baseUrl}/osx-64/${micromambaVersion} | tar -xvzO bin/micromamba > ${micromambaLoc}`)
+          await execute(`curl -Ls --retry 5 --retry-delay 1 ${baseUrl}/osx-64/${micromambaVersion} | tar -xvzO bin/micromamba > ${micromambaLoc}`)
         }
         await execute(`chmod u+x ${micromambaLoc}`)
         await execute(`${micromambaLoc} shell init -s bash -p ~/micromamba -y`)
@@ -106,9 +106,9 @@ async function run () {
       } else if (process.platform === 'linux') {
         // linux
         try {
-          await executeNoCatch(`wget -qO- ${baseUrl}/linux-64/${micromambaVersion} | tar -xvjO bin/micromamba > ${micromambaLoc}`)
+          await executeNoCatch(`wget -qO- --retry-connrefused --waitretry=1 -t 5 ${baseUrl}/linux-64/${micromambaVersion} | tar -xvjO bin/micromamba > ${micromambaLoc}`)
         } catch (error) {
-          await execute(`wget -qO- ${baseUrl}/linux-64/${micromambaVersion} | tar -xvzO bin/micromamba > ${micromambaLoc}`)
+          await execute(`wget -qO- --retry-connrefused --waitretry=1 -t 5 ${baseUrl}/linux-64/${micromambaVersion} | tar -xvzO bin/micromamba > ${micromambaLoc}`)
         }
         await execute(`chmod u+x ${micromambaLoc}`)
 
@@ -148,11 +148,25 @@ else
   Add-Content -path $profile -value "CONTENTPLACEHOLDER"
   Write-Host "Profile already exists and new content added"
 }`
+      const powershellDownloader = `$count = 0
+do{
+    try
+    {
+        Invoke-Webrequest -URI ${baseUrl}/win-64/${micromambaVersion} -OutFile ~\\micromamba.tar.bz2
+        $success = $true
+    }
+    catch
+    {
+        Start-sleep -Seconds 1
+    }
+    $count++
+}until($count -eq 5 -or $success)
+if(-not($success)){exit}`
       const autoactivate = powershellAutoActivateEnv.replace(/CONTENTPLACEHOLDER/g, `micromamba activate ${envName}`)
       core.startGroup(`Installing environment ${envName} from ${envFilePath} ...`)
       touch(profile)
 
-      await execPwsh(`Invoke-Webrequest -URI ${baseUrl}/win-64/${micromambaVersion} -OutFile ~\\micromamba.tar.bz2`)
+      await execPwsh(powershellDownloader)
       await execPwsh(
         '$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
         'tar.exe -xvjf ~/micromamba.tar.bz2 --strip-components 2 -C ~ Library/bin/micromamba.exe'
