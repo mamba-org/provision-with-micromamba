@@ -23,7 +23,7 @@ jobs:
           environment-file: environment.yml
           environment-name: myenv
           extra-specs: |
-            pytest={{ matrix.pytest }}
+            pytest=${{ matrix.pytest }}
             python=3.8.8
 
       - name: run python in powershell
@@ -72,12 +72,12 @@ jobs:
         shell: powershell
         run: |
           pytest --version
-          python -c "import pytest; assert pytest.__version__.startswith({{ matrix.pytest }})"
+          python -c "import pytest; assert pytest.__version__.startswith(${{ matrix.pytest }})"
         if: runner.os == 'Windows'
 
       - name: check pytest version in bash
         shell: bash -l {0}
         run: |
           pytest --version
-          python -c "import pytest; assert pytest.__version__.startswith({{ matrix.pytest }})"
+          python -c "import pytest; assert pytest.__version__.startswith(${{ matrix.pytest }})"
         if: runner.os != 'Windows'
