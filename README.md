@@ -72,6 +72,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pytest: ["6.1", "6.2"]
     name: test
     steps:
       - uses: actions/checkout@v2
@@ -83,7 +86,7 @@ jobs:
           environment-name: myenv
           extra-specs: |
             python=3.7
-            pytest<=6.1
+            pytest=${{ matrix.pytest }}
 ```
 
 ## IMPORTANT
