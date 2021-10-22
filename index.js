@@ -167,8 +167,7 @@ if(-not($success)){exit}`
       await execPwsh(powershellDownloader)
       await execPwsh(
         '$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
-        'tar.exe -xvjf ~/micromamba-bin/micromamba.tar.bz2 --strip-components 2 -C ~/micromamba-bin Library/bin/micromamba.exe;' +
-        'mv micromamba.exe ~/micromamba-bin/micromamba.exe'
+        'tar.exe -xvjf ~/micromamba-bin/micromamba.tar.bz2 --strip-components 2 -C ~/micromamba-bin Library/bin/micromamba.exe;'
       )
 
       const micromambaExe = `${micromambaLoc}.exe`;
