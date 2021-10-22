@@ -50,14 +50,14 @@ jobs:
           which micromamba
           python test/test_path.py
 
-      - name: run python in zsh
-        shell: zsh -l {0}
-        run: |
-          python -VV
-          python -c "import numpy"
-          micromamba --help
-          micromamba activate test
-          echo "MAMBA_EXE=$MAMBA_EXE"
-          which micromamba
-          python test/test_path.py
-        if: runner.os == 'macOS'
+      # - name: run python in zsh
+      #   shell: zsh -l {0}
+      #   run: |
+      #     python -VV
+      #     python -c "import numpy"
+      #     micromamba --help
+      #     micromamba activate test
+      #     echo "MAMBA_EXE=$MAMBA_EXE"
+      #     which micromamba
+      #     python test/test_path.py
+      #   if: runner.os == 'macOS'
