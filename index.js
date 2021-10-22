@@ -52,6 +52,7 @@ async function run () {
     const bashrcBak = path.join(os.homedir(), '.bashrc.actionbak')
     const micromambaBinFolder = path.join(os.homedir(), 'micromamba-bin');
     const micromambaLoc = path.join(micromambaBinFolder, 'micromamba');
+    console.log(`The bin folder is ${micromambaBinFolder}`);
 
     core.startGroup('Configuring micromamba...')
     touch(condarc)
@@ -166,7 +167,7 @@ if(-not($success)){exit}`
       await execPwsh(powershellDownloader)
       await execPwsh(
         '$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
-        'tar.exe -xvjf ${micromambaBinFolder}/micromamba.tar.bz2 --strip-components 2 -C ~ Library/bin/micromamba.exe'
+        'tar.exe -xvjf ${micromambaBinFolder}\\micromamba.tar.bz2 --strip-components 2 -C ~ Library/bin/micromamba.exe'
       )
 
       const micromambaExe = `${micromambaLoc}.exe`;
