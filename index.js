@@ -94,7 +94,9 @@ async function run () {
         }
         await execute(`chmod u+x ${micromambaLoc}`)
         await execute(`${micromambaLoc} shell init -s bash -p ~/micromamba -y`)
-        await execute(`${micromambaLoc} shell init -s zsh -p ~/micromamba -y`)
+        // TODO need to fix a check in micromamba so that this works
+        // https://github.com/mamba-org/mamba/issues/925
+        // await execute(`${micromambaLoc} shell init -s zsh -p ~/micromamba -y`)
       } else if (process.platform === 'linux') {
         // linux
         try {
@@ -166,12 +168,15 @@ if(-not($success)){exit}`
         '$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
         'tar.exe -xvjf ${micromambaBinFolder}/micromamba.tar.bz2 --strip-components 2 -C ~ Library/bin/micromamba.exe'
       )
-      await execPwsh(`${micromambaLoc} --help`)
-      await execPwsh(`${micromambaLoc} shell init -s powershell -p $HOME\\micromamba`)
-      await execPwsh(`${micromambaLoc} shell init -s bash -p ~\\micromamba -y`)
-      await execPwsh(`${micromambaLoc} shell init -s cmd.exe -p ~\\micromamba -y`)
 
-      await execPwsh(`${micromambaLoc} create -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`);
+      const micromambaExe = `${micromambaLoc}.exe`;
+
+      await execPwsh(`${micromambaExe} --help`)
+      await execPwsh(`${micromambaExe} shell init -s powershell -p $HOME\\micromamba`)
+      await execPwsh(`${micromambaExe} shell init -s bash -p ~\\micromamba -y`)
+      await execPwsh(`${micromambaExe} shell init -s cmd.exe -p ~\\micromamba -y`)
+
+      await execPwsh(`${micromambaExe} create -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`);
       await execPwsh(autoactivate);
 
       fs.appendFileSync(profile, `micromamba activate ${envName}\n`)
