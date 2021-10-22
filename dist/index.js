@@ -57,7 +57,8 @@ async function run () {
     const profile = path.join(os.homedir(), '.bash_profile')
     const bashrc = path.join(os.homedir(), '.bashrc')
     const bashrcBak = path.join(os.homedir(), '.bashrc.actionbak')
-    const micromambaLoc = path.join(os.homedir(), 'micromamba-bin/micromamba')
+    const micromambaBinFolder = path.join(os.homedir(), 'micromamba-bin');
+    const micromambaLoc = path.join(micromambaBinFolder, 'micromamba');
 
     core.startGroup('Configuring micromamba...')
     touch(condarc)
@@ -89,7 +90,7 @@ async function run () {
 
       touch(profile)
 
-      await execute('mkdir -p ' + path.join(os.homedir(), 'micromamba-bin/'))
+      await execute('mkdir -p ' + micromambaBinFolder)
 
       if (process.platform === 'darwin') {
         // macos
@@ -100,9 +101,7 @@ async function run () {
         }
         await execute(`chmod u+x ${micromambaLoc}`)
         await execute(`${micromambaLoc} shell init -s bash -p ~/micromamba -y`)
-        // TODO need to fix a check in micromamba so that this works
-        // https://github.com/mamba-org/mamba/issues/925
-        // await execute(`${micromambaLoc} shell init -s zsh -p ~/micromamba -y`)
+        await execute(`${micromambaLoc} shell init -s zsh -p ~/micromamba -y`)
       } else if (process.platform === 'linux') {
         // linux
         try {
@@ -133,6 +132,7 @@ async function run () {
       await execute('source ' + profile + ' && micromamba create -n ' + envName + ' ' + quotedExtraSpecsStr + ' --strict-channel-priority -y -f ' + envFilePath)
       fs.appendFileSync(profile, 'set -eo pipefail\n')
       fs.appendFileSync(profile, 'micromamba activate ' + envName + '\n')
+      core.addPath(micromambaBinFolder);
       core.endGroup()
 
       await execute('source ' + profile + ' && micromamba info && micromamba list')
@@ -152,7 +152,7 @@ else
 do{
     try
     {
-        Invoke-Webrequest -URI ${baseUrl}/win-64/${micromambaVersion} -OutFile ~\\micromamba.tar.bz2
+        Invoke-Webrequest -URI ${baseUrl}/win-64/${micromambaVersion} -OutFile ${micromambaBinFolder}\\micromamba.tar.bz2
         $success = $true
     }
     catch
@@ -166,22 +166,24 @@ if(-not($success)){exit}`
       core.startGroup(`Installing environment ${envName} from ${envFilePath} ...`)
       touch(profile)
 
+      await execPwsh('mkdir -path ' + micromambaBinFolder);
+
       await execPwsh(powershellDownloader)
       await execPwsh(
         '$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
-        'tar.exe -xvjf ~/micromamba.tar.bz2 --strip-components 2 -C ~ Library/bin/micromamba.exe'
+        'tar.exe -xvjf ${micromambaBinFolder}/micromamba.tar.bz2 --strip-components 2 -C ~ Library/bin/micromamba.exe'
       )
-      await execPwsh('~\\micromamba.exe --help')
-      await execPwsh('~\\micromamba.exe shell init -s powershell -p $HOME\\micromamba')
-      await execPwsh('~\\micromamba.exe shell init -s bash -p ~\\micromamba -y')
-      await execPwsh('~\\micromamba.exe shell init -s cmd.exe -p ~\\micromamba -y')
-      // Can only init once right now ...
-      // await execPwsh("~\\micromamba.exe shell init -s bash -p $HOME\\micromamba")
-      await execPwsh('MD $HOME\\micromamba\\pkgs -ea 0')
-      await execPwsh(`~\\micromamba.exe create -n ` + envName + ' ' + quotedExtraSpecsStr + ` --strict-channel-priority -y -f ${envFilePath}`)
-      await execPwsh(autoactivate)
+      await execPwsh(`${micromambaLoc} --help`)
+      await execPwsh(`${micromambaLoc} shell init -s powershell -p $HOME\\micromamba`)
+      await execPwsh(`${micromambaLoc} shell init -s bash -p ~\\micromamba -y`)
+      await execPwsh(`${micromambaLoc} shell init -s cmd.exe -p ~\\micromamba -y`)
+
+      await execPwsh(`${micromambaLoc} create -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`);
+      await execPwsh(autoactivate);
 
       fs.appendFileSync(profile, `micromamba activate ${envName}\n`)
+
+      core.addPath(micromambaBinFolder);
 
       core.endGroup()
       await execPwsh('micromamba info')

@@ -25,6 +25,7 @@ jobs:
           python -VV
           python -c "import numpy"
           echo "MAMBA_EXE=$Env:MAMBA_EXE"
+          which micromamba
         if: runner.os == 'Windows'
 
       - name: run python in cmd.exe
@@ -36,6 +37,12 @@ jobs:
           echo "MAMBA_EXE=%MAMBA_EXE%"
         if: runner.os == 'Windows'
 
+      - name: run python in cmd.exe
+        shell: cmd /C call {0}
+        run: |
+          echo where micromamba
+        if: runner.os == 'Windows'
+
       - name: run python in bash
         shell: bash -l {0}
         run: |
@@ -43,6 +50,7 @@ jobs:
           python -c "import numpy"
           micromamba --help
           echo "MAMBA_EXE=$MAMBA_EXE"
+          which micromamba
 
       - name: run python in zsh
         shell: zsh -l {0}
@@ -51,4 +59,5 @@ jobs:
           python -c "import numpy"
           micromamba --help
           echo "MAMBA_EXE=$MAMBA_EXE"
+          which micromamba
         if: runner.os == 'macOS'
