@@ -40,7 +40,7 @@ jobs:
       - name: run python in cmd.exe
         shell: cmd /C call {0}
         run: |
-          echo where micromamba
+          where micromamba
         if: runner.os == 'Windows'
 
       - name: run python in bash
