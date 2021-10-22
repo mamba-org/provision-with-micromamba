@@ -56,6 +56,7 @@ jobs:
           python -VV
           python -c "import numpy"
           micromamba --help
+          micromamba activate test
           echo "MAMBA_EXE=$MAMBA_EXE"
           which micromamba
           python test/test_path.py
