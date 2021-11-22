@@ -174,7 +174,8 @@ if(-not($success)){exit}`
 
       await execPwsh(`${micromambaExe} --help`)
       await execPwsh(`${micromambaExe} shell init -s powershell -p $HOME\\micromamba`)
-      await execPwsh(`${micromambaExe} shell init -s bash -p ~\\micromamba -y`)
+      await execPwsh('$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
+                     `${micromambaExe} shell init -s bash -p ~\\micromamba -y`)
       await execPwsh(`${micromambaExe} shell init -s cmd.exe -p ~\\micromamba -y`)
 
       await execPwsh(`${micromambaExe} create -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`);
