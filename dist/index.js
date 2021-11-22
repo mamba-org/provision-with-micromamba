@@ -174,7 +174,7 @@ if(-not($success)){exit}`
       core.startGroup(`Installing environment ${envName} from ${envFilePath} ...`)
       touch(profile)
 
-      await execPwsh('mkdir -path ' + micromambaxBinFolder);
+      await execPwsh('mkdir -path ' + micromambaBinFolder);
 
       await execPwsh(powershellDownloader)
       await execPwsh(
@@ -195,6 +195,8 @@ if(-not($success)){exit}`
 
       fs.appendFileSync(profile, `micromamba activate ${envName}\n`)
 
+      core.exportVariable("MAMBA_ROOT_PREFIX", path.join(os.homedir(), 'micromamba'));
+      core.exportVariable("MAMBA_EXE", micromambaExe);
       core.addPath(micromambaBinFolder);
 
       core.endGroup()
