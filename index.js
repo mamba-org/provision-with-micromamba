@@ -101,9 +101,9 @@ async function run () {
       } else if (process.platform === 'linux') {
         // linux
         try {
-          await executeNoCatch(`wget -qO- --retry-connrefused --waitretry=1 -t 5 ${baseUrl}/linux-64/${micromambaVersion} | tar -xvjO bin/micromamba > ${micromambaLoc}`)
+          await executeNoCatch(`wget -qO- --retry-connrefused --waitretry=10 -t 5 ${baseUrl}/linux-64/${micromambaVersion} | tar -xvjO bin/micromamba > ${micromambaLoc}`)
         } catch (error) {
-          await execute(`wget -qO- --retry-connrefused --waitretry=1 -t 5 ${baseUrl}/linux-64/${micromambaVersion} | tar -xvzO bin/micromamba > ${micromambaLoc}`)
+          await execute(`wget -qO- --retry-connrefused --waitretry=10 -t 5 ${baseUrl}/linux-64/${micromambaVersion} | tar -xvzO bin/micromamba > ${micromambaLoc}`)
         }
         await execute(`chmod u+x ${micromambaLoc}`)
 
@@ -128,7 +128,12 @@ async function run () {
       await execute('source ' + profile + ' && micromamba create -n ' + envName + ' ' + quotedExtraSpecsStr + ' --strict-channel-priority -y -f ' + envFilePath)
       fs.appendFileSync(profile, 'set -eo pipefail\n')
       fs.appendFileSync(profile, 'micromamba activate ' + envName + '\n')
+
+      await execute("cat " + profile);
+
       core.addPath(micromambaBinFolder);
+      core.exportVariable("MAMBA_ROOT_PREFIX", path.join(os.homedir(), 'micromamba'));
+      core.exportVariable("MAMBA_EXE", micromambaLoc);
       core.endGroup()
 
       await execute('source ' + profile + ' && micromamba info && micromamba list')
@@ -153,7 +158,7 @@ do{
     }
     catch
     {
-        Start-sleep -Seconds 1
+        Start-sleep -Seconds (10 * ($count + 1))
     }
     $count++
 }until($count -eq 5 -or $success)
@@ -162,7 +167,7 @@ if(-not($success)){exit}`
       core.startGroup(`Installing environment ${envName} from ${envFilePath} ...`)
       touch(profile)
 
-      await execPwsh('mkdir -path ' + micromambaBinFolder);
+      await execPwsh('mkdir -path ' + micromambaxBinFolder);
 
       await execPwsh(powershellDownloader)
       await execPwsh(
