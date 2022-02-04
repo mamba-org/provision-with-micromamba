@@ -204,7 +204,7 @@ else
 }`
         await execPwsh(powershellAutoActivateEnv)
       } else {
-        await execute(`source ${paths.profile} && micromamba create -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`)
+        await execute(`source ${paths.profile} && micromamba create -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}\n`)
         fs.appendFileSync(paths.profile, 'set -eo pipefail\n')
       }
       fs.appendFileSync(paths.profile, autoactivateCmd + '\n')
