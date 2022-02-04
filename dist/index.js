@@ -45,7 +45,7 @@ function touch (filename) {
 }
 
 async function installMicromambaPosix (paths, micromambaUrl) {
-  await execute('mkdir -p ' + paths.micromambaBinFolder)
+  await execute(`mkdir -p ${paths.micromambaBinFolder}`)
   if (process.platform === 'darwin') {
     // macos
     const curlCmd = `curl -Ls --retry 5 --retry-delay 1  | tar -xvjO bin/micromamba > ${paths.micromambaLoc}`
@@ -70,19 +70,19 @@ async function installMicromambaPosix (paths, micromambaUrl) {
     await execute(`chmod u+x ${paths.micromambaLoc}`)
 
     // on linux we move the bashrc to a backup and then restore
-    await execute('mv ' + paths.bashrc + ' ' + paths.bashrcBak)
+    await execute(`mv ${paths.bashrc} ${paths.bashrcBak}`)
     touch(paths.bashrc)
     try {
       await execute(`${paths.micromambaLoc} shell init -s bash -p ~/micromamba -y`)
       await execute(`${paths.micromambaLoc} shell init -s zsh -p ~/micromamba -y`)
       fs.appendFileSync(paths.profile, '\n' + fs.readFileSync(paths.bashrc, 'utf8'), 'utf8')
-      await execute('mv ' + paths.bashrcBak + ' ' + paths.bashrc)
+      await execute(`mv ${paths.bashrcBak} ${paths.bashrc}`)
     } catch (error) {
-      await execute('mv ' + paths.bashrcBak + ' ' + paths.bashrc)
+      await execute(`mv ${paths.bashrcBak} ${paths.bashrc}`)
       core.setFailed(error.message)
     }
   } else {
-    core.setFailed('Platform ' + process.platform + ' not supported.')
+    core.setFailed(`Platform ${process.platform} not supported.`)
   }
   await execute('mkdir -p ' + path.join(os.homedir(), 'micromamba/pkgs/'))
   core.addPath(paths.micromambaBinFolder);
@@ -106,7 +106,7 @@ do{
 }until($count -eq 5 -or $success)
 if(-not($success)){exit}`
 
-  await execPwsh('mkdir -path ' + paths.micromambaBinFolder);
+  await execPwsh(`mkdir -path ${paths.micromambaBinFolder}`);
   await execPwsh(powershellDownloader)
   await execPwsh(
     '$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
@@ -128,14 +128,13 @@ async function run () {
   try {
     const baseUrl = 'https://micro.mamba.pm/api/micromamba'
     const micromambaVersion = core.getInput('micromamba-version')
-    const envFileName = core.getInput('environment-file')
-    let envFilePath, envYaml, envName, extraSpecs
-    if (envFileName !== 'false') {
-      envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', envFileName)
-      envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
-      envName = core.getInput('environment-name') || envYaml.name
-      extraSpecs = core.getInput('extra-specs').split('\n').filter(x => x !== '')
-    }
+    const platformUrl = {
+      darwin: 'osx',
+      linux: 'linux',
+      win32: 'win'
+    }[process.platform]
+    const micromambaUrl = `${baseUrl}/${platformUrl}-64/${micromambaVersion}`
+
     const paths = {
       condarc: path.join(os.homedir(), '.condarc'),
       profile: path.join(os.homedir(), '.bash_profile'),
@@ -143,9 +142,18 @@ async function run () {
       bashrcBak: path.join(os.homedir(), '.bashrc.actionbak'),
       micromambaBinFolder: path.join(os.homedir(), 'micromamba-bin'),
       micromambaLoc: path.join(os.homedir(), 'micromamba-bin', 'micromamba'),
-      micromambaExe: path.join(os.homedir(), 'micromamba-bin', 'micromamba.exe'),
+      micromambaExe: path.join(os.homedir(), 'micromamba-bin', 'micromamba.exe')
     }
-    console.log(`The bin folder is ${paths.micromambaBinFolder}`);
+    console.log(`The bin folder is ${paths.micromambaBinFolder}`)
+
+    const envFileName = core.getInput('environment-file')
+    let envFilePath, envYaml, envName, envExtraSpecs
+    if (envFileName !== 'false') {
+      envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', envFileName)
+      envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
+      envName = core.getInput('environment-name') || envYaml.name
+      envExtraSpecs = core.getInput('extra-specs').split('\n').filter(x => x !== '')
+    }
 
     core.startGroup('Configuring micromamba...')
     touch(paths.condarc)
@@ -155,21 +163,13 @@ async function run () {
     if (envYaml.channels !== undefined) {
       fs.appendFileSync(paths.condarc, 'channels: [' + envYaml.channels.join(', ') + ']\n')
     }
-    if (process.platform !== 'win32')
-    {
-      await execute('cat ' + paths.condarc)
-    }
-    else
-    {
-      await execute('cat $(cygpath "' + paths.condarc + '")')
-
+    if (process.platform !== 'win32') {
+      await execute(`cat ${paths.condarc}`)
+    } else {
+      await execute(`cat $(cygpath "${paths.condarc}")`)
       // await execute('type ' + condarc)
     }
     core.endGroup()
-
-    const quotedExtraSpecsStr = extraSpecs.map(function(e) { 
-      return '"' + e + '"';
-    }).join(" ");
 
     touch(paths.profile)
 
@@ -177,11 +177,9 @@ async function run () {
     if (!fs.existsSync(paths.micromambaBinFolder)) {
       core.startGroup('Installing micromamba')
       if (process.platform === 'win32') {
-        const url = `${baseUrl}/win-64/${micromambaVersion}`
-        await installMicromambaWindows(paths, url)
+        await installMicromambaWindows(paths, micromambaUrl)
       } else {
-        const url = `${baseUrl}/${process.platform === 'darwin' ? 'osx' : 'linux'}-64/${micromambaVersion}`
-        await installMicromambaPosix(paths, url)
+        await installMicromambaPosix(paths, micromambaUrl)
       }
       core.endGroup()
     }
@@ -189,9 +187,11 @@ async function run () {
     // Install env
     if (envName) {
       core.startGroup(`Installing environment ${envName} from ${envFilePath} ...`)
+      const quotedExtraSpecsStr = envExtraSpecs.map(e => `"${e}"`).join(' ')
+
       const autoactivateCmd = `micromamba activate ${envName}`
       if (process.platform === 'win32') {
-        await execPwsh(`${paths.micromambaExe} create -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`);
+        await execPwsh(`${paths.micromambaExe} create -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`)
         const powershellAutoActivateEnv = `if (!(Test-Path $profile))
 {
    New-Item -path $profile -type "file" -value "${autoactivateCmd}"
@@ -204,11 +204,11 @@ else
 }`
         await execPwsh(powershellAutoActivateEnv)
       } else {
-        await execute('source ' + paths.profile + ' && micromamba create -n ' + envName + ' ' + quotedExtraSpecsStr + ' --strict-channel-priority -y -f ' + envFilePath)
+        await execute(`source ${paths.profile} && micromamba create -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`)
         fs.appendFileSync(paths.profile, 'set -eo pipefail\n')
       }
       fs.appendFileSync(paths.profile, autoactivateCmd + '\n')
-      await execute("cat " + paths.profile);
+      await execute(`cat ${paths.profile}`)
       core.endGroup()
     }
 
@@ -217,7 +217,7 @@ else
       await execPwsh('micromamba info')
       await execPwsh('micromamba list')
     } else {
-      await execute('source ' + paths.profile + ' && micromamba info && micromamba list')
+      await execute(`source ${paths.profile} && micromamba info && micromamba list`)
     }
   } catch (error) {
     core.setFailed(error.message)
