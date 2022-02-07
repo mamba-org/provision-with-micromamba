@@ -1,0 +1,30 @@
+name: options
+on:
+  push:
+    branches:
+      - main
+  pull_request: null
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            lock-file: conda-win-64.lock
+          - os: ubuntu-latest
+            lock-file: conda-linux-64.lock
+          - os: macos-latest
+            lock-file: conda-osx-64.lock
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    name: Test lock files
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install from lockfile
+        uses: ./
+        with:
+          environment-name: lock_test
+          environment-file: .github/workflows/lockfiles/${{ matrix.lock-file }}

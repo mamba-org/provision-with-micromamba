@@ -5,11 +5,11 @@ branding:
   color: "green"
 inputs:
   environment-file:
-    description: "the environment.yml file for the conda environment"
+    description: "the environment.yml or .lock file for the conda environment. If 'false', no enviroment will be created."
     required: true
     default: environment.yml
   environment-name:
-    description: "the name of the conda environment (defaults to name from the environment.yml file)"
+    description: "the name of the conda environment (defaults to name from the environment.yml file). Required if 'environment-file' is a .lock file."
     required: false
   micromamba-version:
     description: 'version of micromamba to use (default: 0.9.2). Use "latest" for bleeding edge.'

@@ -44,123 +44,58 @@ function touch (filename) {
   }
 }
 
-async function run () {
-  try {
-    const baseUrl = 'https://micro.mamba.pm/api/micromamba'
-    const envFileName = core.getInput('environment-file')
-    const micromambaVersion = core.getInput('micromamba-version')
-    const envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', envFileName)
-    const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
-    const extraSpecs = core.getInput('extra-specs').split("\n").filter(x => x !== "");
-    const envName = core.getInput('environment-name') || envYaml.name
-    const condarc = path.join(os.homedir(), '.condarc')
-    const profile = path.join(os.homedir(), '.bash_profile')
-    const bashrc = path.join(os.homedir(), '.bashrc')
-    const bashrcBak = path.join(os.homedir(), '.bashrc.actionbak')
-    const micromambaBinFolder = path.join(os.homedir(), 'micromamba-bin');
-    const micromambaLoc = path.join(micromambaBinFolder, 'micromamba');
-    console.log(`The bin folder is ${micromambaBinFolder}`);
-
-    core.startGroup('Configuring micromamba...')
-    touch(condarc)
-    fs.appendFileSync(condarc, 'always_yes: true\n')
-    fs.appendFileSync(condarc, 'show_channel_urls: true\n')
-    fs.appendFileSync(condarc, 'channel_priority: strict\n')
-    if (envYaml.channels !== undefined) {
-      fs.appendFileSync(condarc, 'channels: [' + envYaml.channels.join(', ') + ']\n')
+async function installMicromambaPosix (paths, micromambaUrl) {
+  await execute(`mkdir -p ${paths.micromambaBinFolder}`)
+  if (process.platform === 'darwin') {
+    // macos
+    const curlCmd = `curl -Ls --retry 5 --retry-delay 1 ${micromambaUrl} | tar -xvjO bin/micromamba > ${paths.micromambaLoc}`
+    try {
+      await executeNoCatch(curlCmd)
+    } catch (error) {
+      await execute(curlCmd)
     }
-    if (process.platform !== 'win32')
-    {
-      await execute('cat ' + condarc)
+    await execute(`chmod u+x ${paths.micromambaLoc}`)
+    await execute(`${paths.micromambaLoc} shell init -s bash -p ~/micromamba -y`)
+    // TODO need to fix a check in micromamba so that this works
+    // https://github.com/mamba-org/mamba/issues/925
+    // await execute(`${micromambaLoc} shell init -s zsh -p ~/micromamba -y`)
+  } else if (process.platform === 'linux') {
+    // linux
+    const wgetCmd = `wget -qO- --retry-connrefused --waitretry=10 -t 5 ${micromambaUrl} | tar -xvjO bin/micromamba > ${paths.micromambaLoc}`
+    try {
+      await executeNoCatch(wgetCmd)
+    } catch (error) {
+      await execute(wgetCmd)
     }
-    else
-    {
-      await execute('cat $(cygpath "' + condarc + '")')
+    await execute(`chmod u+x ${paths.micromambaLoc}`)
 
-      // await execute('type ' + condarc)
+    // on linux we move the bashrc to a backup and then restore
+    await execute(`mv ${paths.bashrc} ${paths.bashrcBak}`)
+    touch(paths.bashrc)
+    try {
+      await execute(`${paths.micromambaLoc} shell init -s bash -p ~/micromamba -y`)
+      await execute(`${paths.micromambaLoc} shell init -s zsh -p ~/micromamba -y`)
+      fs.appendFileSync(paths.profile, '\n' + fs.readFileSync(paths.bashrc, 'utf8'), 'utf8')
+      await execute(`mv ${paths.bashrcBak} ${paths.bashrc}`)
+    } catch (error) {
+      await execute(`mv ${paths.bashrcBak} ${paths.bashrc}`)
+      core.setFailed(error.message)
     }
-    core.endGroup()
-
-    const quotedExtraSpecsStr = extraSpecs.map(function(e) { 
-      return '"' + e + '"';
-    }).join(" ");
-
-    if (process.platform !== 'win32') {
-
-      core.startGroup('Installing environment ' + envName + ' from ' + envFilePath + ' ...')
-
-      touch(profile)
-
-      await execute('mkdir -p ' + micromambaBinFolder)
-
-      if (process.platform === 'darwin') {
-        // macos
-        try {
-          await executeNoCatch(`curl -Ls --retry 5 --retry-delay 1 ${baseUrl}/osx-64/${micromambaVersion} | tar -xvjO bin/micromamba > ${micromambaLoc}`)
-        } catch (error) {
-          await execute(`curl -Ls --retry 5 --retry-delay 1 ${baseUrl}/osx-64/${micromambaVersion} | tar -xvzO bin/micromamba > ${micromambaLoc}`)
-        }
-        await execute(`chmod u+x ${micromambaLoc}`)
-        await execute(`${micromambaLoc} shell init -s bash -p ~/micromamba -y`)
-        // TODO need to fix a check in micromamba so that this works
-        // https://github.com/mamba-org/mamba/issues/925
-        // await execute(`${micromambaLoc} shell init -s zsh -p ~/micromamba -y`)
-      } else if (process.platform === 'linux') {
-        // linux
-        try {
-          await executeNoCatch(`wget -qO- --retry-connrefused --waitretry=10 -t 5 ${baseUrl}/linux-64/${micromambaVersion} | tar -xvjO bin/micromamba > ${micromambaLoc}`)
-        } catch (error) {
-          await execute(`wget -qO- --retry-connrefused --waitretry=10 -t 5 ${baseUrl}/linux-64/${micromambaVersion} | tar -xvzO bin/micromamba > ${micromambaLoc}`)
-        }
-        await execute(`chmod u+x ${micromambaLoc}`)
-
-        // on linux we move the bashrc to a backup and then restore
-        await execute('mv ' + bashrc + ' ' + bashrcBak)
-        touch(bashrc)
-        try {
-          await execute(`${micromambaLoc} shell init -s bash -p ~/micromamba -y`)
-          await execute(`${micromambaLoc} shell init -s zsh -p ~/micromamba -y`)
-          fs.appendFileSync(profile, '\n' + fs.readFileSync(bashrc, 'utf8'), 'utf8')
-          await execute('mv ' + bashrcBak + ' ' + bashrc)
-        } catch (error) {
-          await execute('mv ' + bashrcBak + ' ' + bashrc)
-          core.setFailed(error.message)
-        }
-      } else {
-        core.setFailed('Platform ' + process.platform + ' not supported.')
-      }
-
-      // final bits of the install
-      await execute('mkdir -p ' + path.join(os.homedir(), 'micromamba/pkgs/'))
-      await execute('source ' + profile + ' && micromamba create -n ' + envName + ' ' + quotedExtraSpecsStr + ' --strict-channel-priority -y -f ' + envFilePath)
-      fs.appendFileSync(profile, 'set -eo pipefail\n')
-      fs.appendFileSync(profile, 'micromamba activate ' + envName + '\n')
-
-      await execute("cat " + profile);
-
-      core.addPath(micromambaBinFolder);
-      core.exportVariable("MAMBA_ROOT_PREFIX", path.join(os.homedir(), 'micromamba'));
-      core.exportVariable("MAMBA_EXE", micromambaLoc);
-      core.endGroup()
-
-      await execute('source ' + profile + ' && micromamba info && micromamba list')
-    } else {
-      // handle win32!
-      const powershellAutoActivateEnv = `if (!(Test-Path $profile))
-{
-   New-Item -path $profile -type "file" -value "CONTENTPLACEHOLDER"
-   Write-Host "Created new profile and content added"
+  } else {
+    core.setFailed(`Platform ${process.platform} not supported.`)
+  }
+  await execute('mkdir -p ' + path.join(os.homedir(), 'micromamba/pkgs/'))
+  core.addPath(paths.micromambaBinFolder)
+  core.exportVariable('MAMBA_ROOT_PREFIX', path.join(os.homedir(), 'micromamba'))
+  core.exportVariable('MAMBA_EXE', paths.micromambaLoc)
 }
-else
-{
-  Add-Content -path $profile -value "CONTENTPLACEHOLDER"
-  Write-Host "Profile already exists and new content added"
-}`
-      const powershellDownloader = `$count = 0
+
+async function installMicromambaWindows (paths, micromambaUrl) {
+  const powershellDownloader = `$count = 0
 do{
     try
     {
-        Invoke-Webrequest -URI ${baseUrl}/win-64/${micromambaVersion} -OutFile ${micromambaBinFolder}\\micromamba.tar.bz2
+        Invoke-Webrequest -URI ${micromambaUrl} -OutFile ${paths.micromambaBinFolder}\\micromamba.tar.bz2
         $success = $true
     }
     catch
@@ -170,38 +105,127 @@ do{
     $count++
 }until($count -eq 5 -or $success)
 if(-not($success)){exit}`
-      const autoactivate = powershellAutoActivateEnv.replace(/CONTENTPLACEHOLDER/g, `micromamba activate ${envName}`)
-      core.startGroup(`Installing environment ${envName} from ${envFilePath} ...`)
-      touch(profile)
 
-      await execPwsh('mkdir -path ' + micromambaBinFolder);
+  await execPwsh(`mkdir -path ${paths.micromambaBinFolder}`)
+  await execPwsh(powershellDownloader)
+  await execPwsh(
+    '$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
+    'tar.exe -xvjf ~/micromamba-bin/micromamba.tar.bz2 --strip-components 2 -C ~/micromamba-bin Library/bin/micromamba.exe;'
+  )
 
-      await execPwsh(powershellDownloader)
-      await execPwsh(
-        '$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
-        'tar.exe -xvjf ~/micromamba-bin/micromamba.tar.bz2 --strip-components 2 -C ~/micromamba-bin Library/bin/micromamba.exe;'
-      )
+  await execPwsh(`${paths.micromambaExe} --help`)
+  await execPwsh(`${paths.micromambaExe} shell init -s powershell -p $HOME\\micromamba`)
+  await execPwsh('$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
+                 `${paths.micromambaExe} shell init -s bash -p ~\\micromamba -y`)
+  await execPwsh(`${paths.micromambaExe} shell init -s cmd.exe -p ~\\micromamba -y`)
 
-      const micromambaExe = `${micromambaLoc}.exe`;
+  core.exportVariable('MAMBA_ROOT_PREFIX', path.join(os.homedir(), 'micromamba'))
+  core.exportVariable('MAMBA_EXE', paths.micromambaExe)
+  core.addPath(paths.micromambaBinFolder)
+}
 
-      await execPwsh(`${micromambaExe} --help`)
-      await execPwsh(`${micromambaExe} shell init -s powershell -p $HOME\\micromamba`)
-      await execPwsh('$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
-                     `${micromambaExe} shell init -s bash -p ~\\micromamba -y`)
-      await execPwsh(`${micromambaExe} shell init -s cmd.exe -p ~\\micromamba -y`)
+async function run () {
+  try {
+    const inputs = {
+      envName: core.getInput('environment-name'),
+      envFile: core.getInput('environment-file'),
+      micromambaVersion: core.getInput('micromamba-version'),
+      extraSpecs: core.getInput('extra-specs')
+    }
+    const baseUrl = 'https://micro.mamba.pm/api/micromamba'
+    const platformUrl = {
+      darwin: 'osx',
+      linux: 'linux',
+      win32: 'win'
+    }[process.platform]
+    const micromambaUrl = `${baseUrl}/${platformUrl}-64/${inputs.micromambaVersion}`
 
-      await execPwsh(`${micromambaExe} create -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`);
-      await execPwsh(autoactivate);
+    const paths = {
+      condarc: path.join(os.homedir(), '.condarc'),
+      profile: path.join(os.homedir(), '.bash_profile'),
+      bashrc: path.join(os.homedir(), '.bashrc'),
+      bashrcBak: path.join(os.homedir(), '.bashrc.actionbak'),
+      micromambaBinFolder: path.join(os.homedir(), 'micromamba-bin'),
+      micromambaLoc: path.join(os.homedir(), 'micromamba-bin', 'micromamba'),
+      micromambaExe: path.join(os.homedir(), 'micromamba-bin', 'micromamba.exe')
+    }
+    console.log(`The bin folder is ${paths.micromambaBinFolder}`)
 
-      fs.appendFileSync(profile, `micromamba activate ${envName}\n`)
+    let envFilePath, envName
 
-      core.exportVariable("MAMBA_ROOT_PREFIX", path.join(os.homedir(), 'micromamba'));
-      core.exportVariable("MAMBA_EXE", micromambaExe);
-      core.addPath(micromambaBinFolder);
+    core.startGroup('Configuring micromamba...')
+    touch(paths.condarc)
+    if (inputs.envFile !== 'false') {
+      envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', inputs.envFile)
+      let condarcOpts = `
+always_yes: true
+show_channel_urls: true
+channel_priority: strict
+`
+      if (envFilePath.endsWith('.lock')) {
+        envName = inputs.envName
+      } else {
+        const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
+        envName = inputs.envName || envYaml.name
+        if (envYaml.channels !== undefined) {
+          condarcOpts += `channels: [${envYaml.channels.join(', ')}]`
+        }
+      }
+      fs.appendFileSync(paths.condarc, condarcOpts)
+    }
 
+    console.log(`Contents of ${paths.condarc}:\n ${fs.readFileSync(paths.condarc)}`)
+
+    core.endGroup()
+
+    // Install micromamba
+    if (!fs.existsSync(paths.micromambaBinFolder)) {
+      core.startGroup('Installing micromamba')
+      if (process.platform === 'win32') {
+        await installMicromambaWindows(paths, micromambaUrl)
+      } else {
+        await installMicromambaPosix(paths, micromambaUrl)
+      }
       core.endGroup()
+    }
+
+    touch(paths.profile)
+
+    // Install env
+    if (envName) {
+      core.startGroup(`Installing environment ${envName} from ${envFilePath} ...`)
+      const envExtraSpecs = inputs.extraSpecs.split('\n').filter(x => x !== '')
+      const quotedExtraSpecsStr = envExtraSpecs.map(e => `"${e}"`).join(' ')
+
+      const autoactivateCmd = `micromamba activate ${envName}`
+      if (process.platform === 'win32') {
+        await execPwsh(`${paths.micromambaExe} create -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`)
+        const powershellAutoActivateEnv = `if (!(Test-Path $profile))
+{
+   New-Item -path $profile -type "file" -value "${autoactivateCmd}"
+   Write-Host "Created new profile and content added"
+}
+else
+{
+  Add-Content -path $profile -value "${autoactivateCmd}"
+  Write-Host "Profile already exists and new content added"
+}`
+        await execPwsh(powershellAutoActivateEnv)
+      } else {
+        await execute(`\nsource ${paths.profile} && micromamba create -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`)
+        fs.appendFileSync(paths.profile, '\nset -eo pipefail')
+      }
+      fs.appendFileSync(paths.profile, '\n' + autoactivateCmd)
+      console.log(`Contents of ${paths.profile}:\n ${fs.readFileSync(paths.profile)}`)
+      core.endGroup()
+    }
+
+    // Show environment info
+    if (process.platform === 'win32') {
       await execPwsh('micromamba info')
       await execPwsh('micromamba list')
+    } else {
+      await execute(`source ${paths.profile} && micromamba info && micromamba list`)
     }
   } catch (error) {
     core.setFailed(error.message)

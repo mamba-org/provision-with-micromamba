@@ -8,13 +8,13 @@ GitHub Action to provision a CI instance using micromamba
 
 ### `environment-file`
 
-**Optional** The the `environment.yml` file for the conda environment. Default is `environment.yml`
+**Optional** The the `environment.yml` file for the conda environment. Default is `environment.yml`.
+If it is `false`, no environment will be created (only Micromamba will be installed).
 
 ### `environment-name`
 
-**Optional** Specify a custom environment name,
-to overwrite the name specified in the `environment.yml`,
-or in in case it was not specified in the `environment.yml`.
+**Optional** Specify a custom environment name.  If set it overwrites the name specified in the `environment-file`.
+Required if `environment-file` is a `.lock` file or `false`.
 
 ### `micromamba-version`
 

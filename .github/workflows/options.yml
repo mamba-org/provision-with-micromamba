@@ -20,6 +20,11 @@ jobs:
       - name: install mamba
         uses: ./
         with:
+          environment-file: false
+
+      - name: install mamba
+        uses: ./
+        with:
           environment-file: environment.yml
           environment-name: myenv
           extra-specs: |
