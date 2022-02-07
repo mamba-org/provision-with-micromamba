@@ -85,9 +85,9 @@ async function installMicromambaPosix (paths, micromambaUrl) {
     core.setFailed(`Platform ${process.platform} not supported.`)
   }
   await execute('mkdir -p ' + path.join(os.homedir(), 'micromamba/pkgs/'))
-  core.addPath(paths.micromambaBinFolder);
-  core.exportVariable("MAMBA_ROOT_PREFIX", path.join(os.homedir(), 'micromamba'));
-  core.exportVariable("MAMBA_EXE", paths.micromambaLoc);
+  core.addPath(paths.micromambaBinFolder)
+  core.exportVariable('MAMBA_ROOT_PREFIX', path.join(os.homedir(), 'micromamba'))
+  core.exportVariable('MAMBA_EXE', paths.micromambaLoc)
 }
 
 async function installMicromambaWindows (paths, micromambaUrl) {
@@ -106,7 +106,7 @@ do{
 }until($count -eq 5 -or $success)
 if(-not($success)){exit}`
 
-  await execPwsh(`mkdir -path ${paths.micromambaBinFolder}`);
+  await execPwsh(`mkdir -path ${paths.micromambaBinFolder}`)
   await execPwsh(powershellDownloader)
   await execPwsh(
     '$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
@@ -119,21 +119,26 @@ if(-not($success)){exit}`
                  `${paths.micromambaExe} shell init -s bash -p ~\\micromamba -y`)
   await execPwsh(`${paths.micromambaExe} shell init -s cmd.exe -p ~\\micromamba -y`)
 
-  core.exportVariable("MAMBA_ROOT_PREFIX", path.join(os.homedir(), 'micromamba'));
-  core.exportVariable("MAMBA_EXE", paths.micromambaExe);
-  core.addPath(paths.micromambaBinFolder);
+  core.exportVariable('MAMBA_ROOT_PREFIX', path.join(os.homedir(), 'micromamba'))
+  core.exportVariable('MAMBA_EXE', paths.micromambaExe)
+  core.addPath(paths.micromambaBinFolder)
 }
 
 async function run () {
   try {
+    const inputs = {
+      envName: core.getInput('environment-name'),
+      envFileName: core.getInput('environment-file'),
+      micromambaVersion: core.getInput('micromamba-version'),
+      extraSpecs: core.getInput('extra-specs')
+    }
     const baseUrl = 'https://micro.mamba.pm/api/micromamba'
-    const micromambaVersion = core.getInput('micromamba-version')
     const platformUrl = {
       darwin: 'osx',
       linux: 'linux',
       win32: 'win'
     }[process.platform]
-    const micromambaUrl = `${baseUrl}/${platformUrl}-64/${micromambaVersion}`
+    const micromambaUrl = `${baseUrl}/${platformUrl}-64/${inputs.micromambaVersion}`
 
     const paths = {
       condarc: path.join(os.homedir(), '.condarc'),
@@ -146,23 +151,29 @@ async function run () {
     }
     console.log(`The bin folder is ${paths.micromambaBinFolder}`)
 
-    const envFileName = core.getInput('environment-file')
-    let envFilePath, envYaml, envName, envExtraSpecs
-    if (envFileName !== 'false') {
-      envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', envFileName)
-      envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
-      envName = core.getInput('environment-name') || envYaml.name
-      envExtraSpecs = core.getInput('extra-specs').split('\n').filter(x => x !== '')
+    let envFilePath, envName
+    if (inputs.envFileName !== 'false') {
+      envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', inputs.envFileName)
+      let condarcOpts = `
+always_yes: true
+show_channel_urls: true
+channel_priority: strict
+`
+      const isLockFile = envFilePath.endsWith('.lock')
+      if (isLockFile) {
+        envName = inputs.envName
+      } else {
+        const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
+        envName = inputs.envName || envYaml.name
+        if (envYaml.channels !== undefined) {
+          condarcOpts += `channels: [${envYaml.channels.join(', ')}]`
+        }
+      }
+      touch(paths.condarc)
+      fs.appendFileSync(condarcOpts)
     }
 
     core.startGroup('Configuring micromamba...')
-    touch(paths.condarc)
-    fs.appendFileSync(paths.condarc, 'always_yes: true\n')
-    fs.appendFileSync(paths.condarc, 'show_channel_urls: true\n')
-    fs.appendFileSync(paths.condarc, 'channel_priority: strict\n')
-    if (envYaml.channels !== undefined) {
-      fs.appendFileSync(paths.condarc, 'channels: [' + envYaml.channels.join(', ') + ']\n')
-    }
     if (process.platform !== 'win32') {
       await execute(`cat ${paths.condarc}`)
     } else {
@@ -187,6 +198,7 @@ async function run () {
     // Install env
     if (envName) {
       core.startGroup(`Installing environment ${envName} from ${envFilePath} ...`)
+      const envExtraSpecs = inputs.extraSpecs.split('\n').filter(x => x !== '')
       const quotedExtraSpecsStr = envExtraSpecs.map(e => `"${e}"`).join(' ')
 
       const autoactivateCmd = `micromamba activate ${envName}`
@@ -204,10 +216,10 @@ else
 }`
         await execPwsh(powershellAutoActivateEnv)
       } else {
-        await execute(`source ${paths.profile} && micromamba create -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}\n`)
-        fs.appendFileSync(paths.profile, 'set -eo pipefail\n')
+        await execute(`\nsource ${paths.profile} && micromamba create -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`)
+        fs.appendFileSync(paths.profile, '\nset -eo pipefail')
       }
-      fs.appendFileSync(paths.profile, autoactivateCmd + '\n')
+      fs.appendFileSync(paths.profile, '\n' + autoactivateCmd)
       await execute(`cat ${paths.profile}`)
       core.endGroup()
     }
