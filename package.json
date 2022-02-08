@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "ncc build index.js --license licenses.txt"
+    "build": "ncc build index.js -o dist/main --license licenses.txt && ncc build post.js -o dist/post --license licenses.txt"
   },
   "repository": {
     "type": "git",
@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/beckermr/provision-with-micromamba#readme",
   "dependencies": {
+    "@actions/cache": "^1.0.8",
     "@actions/core": "^1.6.0",
     "@actions/exec": "^1.1.0",
     "@vercel/ncc": "^0.27.0",

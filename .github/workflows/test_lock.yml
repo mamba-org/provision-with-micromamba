@@ -1,4 +1,4 @@
-name: options
+name: Test lock files
 on:
   push:
     branches:
@@ -7,6 +7,7 @@ on:
 
 jobs:
   test:
+    name: Test lock files
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -19,7 +20,9 @@ jobs:
           - os: macos-latest
             lock-file: conda-osx-64.lock
         os: [windows-latest, ubuntu-latest, macos-latest]
-    name: Test lock files
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
       - uses: actions/checkout@v2
 
@@ -28,3 +31,7 @@ jobs:
         with:
           environment-name: lock_test
           environment-file: .github/workflows/lockfiles/${{ matrix.lock-file }}
+
+      - name: test environment name
+        run: |
+          python -c "import os; env = os.path.basename(os.environ['CONDA_PREFIX']); assert env == 'lock_test'"
