@@ -107,7 +107,7 @@ function saveCacheOnPost (paths, key, options) {
 }
 
 async function installMicromambaPosix (micromambaUrl) {
-  const cacheKey = `6micromamba-bin ${micromambaUrl} ${today()}`
+  const cacheKey = `micromamba-bin ${micromambaUrl} ${today()}`
   const cacheArgs = [[PATHS.micromambaBinFolder], cacheKey]
   if (!await tryRestoreCache(...cacheArgs)) {
     await executeBash(`mkdir -p ${PATHS.micromambaBinFolder}`)
@@ -164,7 +164,7 @@ do{
 }until($count -eq 5 -or $success)
 if(-not($success)){exit}`
 
-  const cacheKey = `6micromamba-bin ${micromambaUrl} ${new Date().toDateString()}`
+  const cacheKey = `micromamba-bin ${micromambaUrl} ${new Date().toDateString()}`
   const cacheArgs = [[PATHS.micromambaBinFolder], cacheKey]
   if (!await tryRestoreCache(...cacheArgs)) {
     await executePwsh(`mkdir -path ${PATHS.micromambaBinFolder}`)
@@ -186,31 +186,15 @@ if(-not($success)){exit}`
 
 async function createOrUpdateEnv (envName, envFilePath, extraSpecs) {
   const envFolder = path.join(PATHS.micromambaEnvs, envName)
+  const action = fs.existsSync(envFolder) ? 'update' : 'create'
+  core.info(`${action} env ${envName}`)
   const quotedExtraSpecsStr = extraSpecs.map(e => `"${e}"`).join(' ')
-  if (fs.existsSync(envFolder)) {
-    core.info(`Update env ${envName}`)
-    const cmd = `micromamba update -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`
-    if (MAMBA_PLATFORM === 'win') {
-      await executePwsh(cmd)
-    } else {
-      await executeBash(cmd)
-    }
+  const cmd = `micromamba ${action} -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`
+  if (MAMBA_PLATFORM === 'win') {
+    await executePwsh(cmd)
   } else {
-    core.info(`Create env ${envName}`)
-    //const cmd = `micromamba create -n ${envName}`
-    const cmd = `micromamba create -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`
-    if (MAMBA_PLATFORM === 'win') {
-      await executePwsh(cmd)
-    } else {
-      await executeBash(cmd)
-    }
+    await executeBash(cmd)
   }
-  // const cmd = `micromamba update -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`
-  // if (MAMBA_PLATFORM === 'win') {
-  //   await executePwsh(cmd)
-  // } else {
-  //   await executeBash(cmd)
-  // }
 }
 
 async function main () {
@@ -277,7 +261,7 @@ channel_priority: strict
     if (inputs.cacheEnv) {
       const envHash = sha256(fs.readFileSync(envFilePath)) + '-' + sha256(JSON.stringify(inputs.extraSpecs))
       const key = inputs.cacheEnvKey || `${MAMBA_PLATFORM}-${process.arch} ${today()} ${envHash}`
-      envCacheArgs = [[path.join(PATHS.micromambaEnvs, envName)], `6micromamba-env ${key}`]
+      envCacheArgs = [[path.join(PATHS.micromambaEnvs, envName)], `micromamba-env ${key}`]
       envCacheHit = await tryRestoreCache(...envCacheArgs)
     }
 
@@ -285,7 +269,7 @@ channel_priority: strict
       // Try to restore the download cache.
       if (inputs.cacheDownloads) {
         const key = inputs.cacheDownloadsKey || `${MAMBA_PLATFORM}-${process.arch} ${today()}`
-        downloadCacheArgs = [[PATHS.micromambaPkgs], `6micromamba-pkgs ${key}`]
+        downloadCacheArgs = [[PATHS.micromambaPkgs], `micromamba-pkgs ${key}`]
         downloadCacheHit = await tryRestoreCache(...downloadCacheArgs)
       }
       await createOrUpdateEnv(envName, envFilePath, inputs.extraSpecs)
