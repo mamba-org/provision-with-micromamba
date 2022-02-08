@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "ncc build index.js -o dist/main --license licenses.txt && ncc build post.js -o dist/post --license licenses.txt"
+    "build": "ncc build index.js -o dist/main --license licenses.txt && ncc build post.js -o dist/post --license licenses.txt",
+    "lint": "standard *.js"
   },
   "repository": {
     "type": "git",
@@ -26,5 +27,8 @@
     "fs": "^0.0.1-security",
     "js-yaml": "^3.14.0",
     "os": "^0.1.1"
+  },
+  "devDependencies": {
+    "standard": "^16.0.4"
   }
 }
