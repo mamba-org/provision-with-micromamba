@@ -69,9 +69,9 @@ async function executePwsh (command) {
   }
 }
 
-async function tryRestoreCache (paths, key, ...args) {
+async function tryRestoreCache (path, key, ...args) {
   try {
-    const hitKey = await cache.restoreCache(paths, key, ...args)
+    const hitKey = await cache.restoreCache([path], key, ...args)
     core.info(`Cache ${hitKey ? 'hit' : 'miss'} for key '${key}'`)
     return hitKey
   } catch (error) {
@@ -108,7 +108,7 @@ function saveCacheOnPost (paths, key, options) {
 
 async function installMicromambaPosix (micromambaUrl) {
   const cacheKey = `micromamba-bin ${micromambaUrl} ${today()}`
-  const cacheArgs = [[PATHS.micromambaBinFolder], cacheKey]
+  const cacheArgs = [PATHS.micromambaBinFolder, cacheKey]
   if (!await tryRestoreCache(...cacheArgs)) {
     await executeBash(`mkdir -p ${PATHS.micromambaBinFolder}`)
     const downloadProg = {
@@ -165,7 +165,7 @@ do{
 if(-not($success)){exit}`
 
   const cacheKey = `micromamba-bin ${micromambaUrl} ${new Date().toDateString()}`
-  const cacheArgs = [[PATHS.micromambaBinFolder], cacheKey]
+  const cacheArgs = [PATHS.micromambaBinFolder, cacheKey]
   if (!await tryRestoreCache(...cacheArgs)) {
     await executePwsh(`mkdir -path ${PATHS.micromambaBinFolder}`)
     await executePwsh(powershellDownloader)
@@ -261,7 +261,7 @@ channel_priority: strict
     if (inputs.cacheEnv) {
       const envHash = sha256(fs.readFileSync(envFilePath)) + '-' + sha256(JSON.stringify(inputs.extraSpecs))
       const key = inputs.cacheEnvKey || `${MAMBA_PLATFORM}-${process.arch} ${today()} ${envHash}`
-      envCacheArgs = [[path.join(PATHS.micromambaEnvs, envName)], `micromamba-env ${key}`]
+      envCacheArgs = [path.join(PATHS.micromambaEnvs, envName), `micromamba-env ${key}`]
       envCacheHit = await tryRestoreCache(...envCacheArgs)
     }
 
@@ -269,7 +269,7 @@ channel_priority: strict
       // Try to restore the download cache.
       if (inputs.cacheDownloads) {
         const key = inputs.cacheDownloadsKey || `${MAMBA_PLATFORM}-${process.arch} ${today()}`
-        downloadCacheArgs = [[PATHS.micromambaPkgs], `micromamba-pkgs ${key}`]
+        downloadCacheArgs = [PATHS.micromambaPkgs, `micromamba-pkgs ${key}`]
         downloadCacheHit = await tryRestoreCache(...downloadCacheArgs)
       }
       await createOrUpdateEnv(envName, envFilePath, inputs.extraSpecs)
