@@ -6,13 +6,14 @@ branding:
 inputs:
   environment-file:
     description: >-
-      The environment.yml or .lock file for the conda environment. If 'false', no enviroment will be created.
+      The environment.yml or .lock file for the conda environment.
+      If 'false', no enviroment will be created (only Micromamba will be installed).
     required: true
     default: environment.yml
   environment-name:
     description: >-
       The name of the conda environment (defaults to name from the environment.yml file).
-      Required if 'environment-file' is a .lock file.
+      Required if 'environment-file' is a '.lock' file or 'false'.
     required: false
   micromamba-version:
     description: >-
@@ -21,7 +22,9 @@ inputs:
     default: "latest"
   extra-specs:
     description: >-
-      Extra specifications to install (default empty)
+      Additional specifications (packages) to install.
+      Pretty useful when using matrix builds to pin versions of a test/run dependency.
+      For multiple packages, use multiline syntax (see examples).
     required: false
     default: ""
   cache-downloads:
@@ -47,9 +50,9 @@ inputs:
     required: false
   cache-env-always-update:
     description: >-
+      (Not implemented)
       If 'true', run 'micromamba update' even if the environment was restored from cache
       to make sure your environment is always up-to-date.
-      This doesn't work currently.
     default: false
 
 runs:
