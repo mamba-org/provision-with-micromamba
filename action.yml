@@ -34,7 +34,7 @@ inputs:
     default: false
   cache-downloads-key:
     description: >-
-      Optional custom download cache key used with 'cache-downloads: true'.
+      Custom download cache key used with 'cache-downloads: true'.
       The default download cache key will invalidate the cache once per day.
     required: false
   cache-env:
@@ -44,16 +44,16 @@ inputs:
     default: false
   cache-env-key:
     description: >-
-      Optional custom environment cache key used with 'cache-env: true'.
+      Custom environment cache key used with 'cache-env: true'.
       The default environment cache key will invalidate the cache whenever the contents of the
       'environment-file' or 'extra-specs' change, plus once per day.
     required: false
-  cache-env-always-update:
-    description: >-
-      (Not implemented)
-      If 'true', run 'micromamba update' even if the environment was restored from cache
-      to make sure your environment is always up-to-date.
-    default: false
+  # cache-env-always-update:
+  #   description: >-
+  #     (Not implemented)
+  #     If 'true', run 'micromamba update' even if the environment was restored from cache
+  #     to make sure your environment is always up-to-date.
+  #   default: false
 
 runs:
   using: "node16"
