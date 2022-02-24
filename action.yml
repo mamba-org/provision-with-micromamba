@@ -5,21 +5,58 @@ branding:
   color: "green"
 inputs:
   environment-file:
-    description: "the environment.yml file for the conda environment"
+    description: >-
+      The environment.yml or .lock file for the conda environment.
+      If 'false', no enviroment will be created (only Micromamba will be installed).
     required: true
     default: environment.yml
   environment-name:
-    description: "the name of the conda environment (defaults to name from the environment.yml file)"
+    description: >-
+      The name of the conda environment (defaults to name from the environment.yml file).
+      Required if 'environment-file' is a '.lock' file or 'false'.
     required: false
   micromamba-version:
-    description: 'version of micromamba to use (default: 0.9.2). Use "latest" for bleeding edge.'
+    description: >-
+      Version of micromamba to use, eg. '0.20' (default 'latest').
     required: false
     default: "latest"
   extra-specs:
-    description: "extra specifications to install (defaults is empty)"
+    description: >-
+      Additional specifications (packages) to install.
+      Pretty useful when using matrix builds to pin versions of a test/run dependency.
+      For multiple packages, use multiline syntax (see examples).
     required: false
     default: ""
+  cache-downloads:
+    description: >-
+      If 'true', cache downloaded packages across calls to the provision-with-micromamba action.
+      Cache invalidation can be controlled using the 'cache-downloads-key' option.
+    default: false
+  cache-downloads-key:
+    description: >-
+      Custom download cache key used with 'cache-downloads: true'.
+      The default download cache key will invalidate the cache once per day.
+    required: false
+  cache-env:
+    description: >-
+      If 'true', cache installed environments across calls to the provision-with-micromamba action.
+      Cache invalidation can be controlled using the 'cache-env-key' option.
+    default: false
+  cache-env-key:
+    description: >-
+      Custom environment cache key used with 'cache-env: true'.
+      The default environment cache key will invalidate the cache whenever the contents of the
+      'environment-file' or 'extra-specs' change, plus once per day.
+    required: false
+  # cache-env-always-update:
+  #   description: >-
+  #     (Not implemented)
+  #     If 'true', run 'micromamba update' even if the environment was restored from cache
+  #     to make sure your environment is always up-to-date.
+  #   default: false
 
 runs:
-  using: "node12"
-  main: "dist/index.js"
+  using: "node16"
+  main: "dist/main/index.js"
+  post: "dist/post/index.js"
+  post-if: success()

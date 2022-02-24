@@ -1,4 +1,4 @@
-name: options
+name: Test options
 on:
   push:
     branches:
@@ -7,15 +7,20 @@ on:
 
 jobs:
   test:
+    name: Test options
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
         pytest: ["6.1", "6.2"]
-    name: option
     steps:
       - uses: actions/checkout@v2
+
+      - name: install mamba
+        uses: ./
+        with:
+          environment-file: false
 
       - name: install mamba
         uses: ./
@@ -29,17 +34,19 @@ jobs:
       - name: run python in powershell
         shell: powershell
         run: |
+          where micromamba
+          micromamba info
           python -VV
           python -c "import numpy"
-          micromamba --help
         if: runner.os == 'Windows'
 
       - name: run python in bash
         shell: bash -l {0}
         run: |
+          which micromamba
+          micromamba info
           python -VV
           python -c "import numpy"
-          micromamba --help
         if: runner.os != 'Windows'
 
       - name: test environment name in powershell

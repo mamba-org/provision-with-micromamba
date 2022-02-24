@@ -1,4 +1,4 @@
-name: test
+name: Basic tests
 on:
   push:
     branches:
@@ -7,12 +7,12 @@ on:
 
 jobs:
   test:
+    name: test
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
-    name: test
     steps:
       - uses: actions/checkout@v2
 
@@ -22,42 +22,47 @@ jobs:
       - name: run python in powershell
         shell: powershell
         run: |
+          which micromamba
+          micromamba info
+          which python
           python -VV
           python -c "import numpy"
           echo "MAMBA_EXE=$Env:MAMBA_EXE"
-          which micromamba
           python test/test_path.py
         if: runner.os == 'Windows'
 
       - name: run python in cmd.exe
         shell: cmd /C call {0}
         run: |
+          where micromamba
+          micromamba info
+          which python
           python -VV
           python -c "import numpy"
-          micromamba --help
           echo "MAMBA_EXE=%MAMBA_EXE%"
-          where micromamba
           python test/test_path.py
         if: runner.os == 'Windows'
 
       - name: run python in bash
         shell: bash -l {0}
         run: |
+          which micromamba
+          micromamba info
+          which python
           python -VV
           python -c "import numpy"
-          micromamba --help
           echo "MAMBA_EXE=$MAMBA_EXE"
-          which micromamba
           python test/test_path.py
 
       # - name: run python in zsh
       #   shell: zsh -l {0}
       #   run: |
+      #     which micromamba
+      #     micromamba info
+      #     which python
       #     python -VV
       #     python -c "import numpy"
-      #     micromamba --help
       #     micromamba activate test
       #     echo "MAMBA_EXE=$MAMBA_EXE"
-      #     which micromamba
       #     python test/test_path.py
       #   if: runner.os == 'macOS'
