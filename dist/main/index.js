@@ -207,7 +207,9 @@ async function main () {
     cacheDownloadsKey: core.getInput('cache-downloads-key'),
     cacheEnv: core.getBooleanInput('cache-env'),
     cacheEnvKey: core.getInput('cache-env-key'),
-    cacheEnvAlwaysUpdate: core.getBooleanInput('cache-env-always-update')
+    // Not implemented
+    // cacheEnvAlwaysUpdate: core.getBooleanInput('cache-env-always-update')
+    cacheEnvAlwaysUpdate: false
   }
   const micromambaUrl = MICROMAMBA_PLATFORM_URL + inputs.micromambaVersion
 
