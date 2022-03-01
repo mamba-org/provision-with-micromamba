@@ -22,7 +22,7 @@ The environment.yml or .lock file for the conda environment. If 'false', no envi
 
 ### `extra-specs`
 
-(Optional) Additional specifications (packages) to install. Pretty useful when using matrix builds to pin versions of a test/run dependency. For multiple packages, use multiline syntax (see examples).
+(Optional) Additional specifications (packages) to install. Pretty useful when using matrix builds to pin versions of a test/run dependency. For multiple packages, use multiline syntax (see examples). Note that selectors (`sel(linux): my-linux-package`, `sel(osx): my-osx-package`, `sel(win): my-win-package`) are available.
 
 ### `cache-downloads`
 
