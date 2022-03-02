@@ -172,11 +172,28 @@ if(-not($success)){exit}`
   await executePwsh(`${PATHS.micromambaExe} shell init -s cmd.exe -p ~\\micromamba -y`)
 }
 
+function isSelected (item) {
+  if (/sel\(.*\):.*/gi.test(item)) {
+    return new RegExp('sel\\(' + MAMBA_PLATFORM + '\\):.*', 'gi').test(item)
+  }
+  return true
+}
+
+function stripSelector (item, index, arr) {
+  arr[index] = item.replace(/sel\(.*\): ?/gi, '')
+}
+
+function selectSelectors (extraSpecs) {
+  const ret = extraSpecs.filter(isSelected)
+  ret.forEach(stripSelector)
+  return ret
+}
+
 async function createOrUpdateEnv (envName, envFilePath, extraSpecs) {
   const envFolder = path.join(PATHS.micromambaEnvs, envName)
   const action = fs.existsSync(envFolder) ? 'update' : 'create'
   core.info(`${action} env ${envName}`)
-  const quotedExtraSpecsStr = extraSpecs.map(e => `"${e}"`).join(' ')
+  const quotedExtraSpecsStr = selectSelectors(extraSpecs).map(e => `"${e}"`).join(' ')
   const cmd = `micromamba ${action} -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`
   if (MAMBA_PLATFORM === 'win') {
     await executePwsh(cmd)
