@@ -37,12 +37,20 @@ function getInputAsArray (name) {
     .filter(x => x !== '')
 }
 
-async function executeBash (command) {
-  await exec('bash', ['-c', command])
+async function executeShell (...command) {
+  try {
+    await exec(command[0], command.slice(1))
+  } catch (error) {
+    throw Error(`Failed to execute ${JSON.stringify(command)}`)
+  }
 }
 
-async function executePwsh (command) {
-  await exec('powershell', ['-command', command])
+function executeBash (command) {
+  return executeShell('bash', '-c', command)
+}
+
+function executePwsh (command) {
+  return executeShell('powershell', '-command', command)
 }
 
 async function tryRestoreCache (path, key, ...args) {
