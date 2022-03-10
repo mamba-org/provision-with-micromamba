@@ -37,24 +37,12 @@ function getInputAsArray (name) {
     .filter(x => x !== '')
 }
 
-async function executeBash (command, opts = { setFailed: true }) {
-  try {
-    await exec('bash', ['-c', command])
-  } catch (error) {
-    if (opts.setFailed) {
-      core.setFailed(error.message)
-    } else {
-      throw error
-    }
-  }
+async function executeBash (command) {
+  await exec('bash', ['-c', command])
 }
 
 async function executePwsh (command) {
-  try {
-    await exec('powershell', ['-command', command])
-  } catch (error) {
-    core.setFailed(error.message)
-  }
+  await exec('powershell', ['-command', command])
 }
 
 async function tryRestoreCache (path, key, ...args) {
@@ -108,11 +96,7 @@ async function installMicromambaPosix (micromambaUrl) {
       linux: 'wget -qO- --retry-connrefused --waitretry=10 -t 5'
     }[MAMBA_PLATFORM]
     const downloadCmd = `${downloadProg} ${micromambaUrl} | tar -xvjO bin/micromamba > ${PATHS.micromambaExe}`
-    try {
-      await executeBash(downloadCmd, { setFailed: false })
-    } catch (error) {
-      await executeBash(downloadCmd)
-    }
+    await executeBash(downloadCmd)
     saveCacheOnPost(...cacheArgs)
   }
 
@@ -347,6 +331,7 @@ async function run () {
     await main()
   } catch (error) {
     core.setFailed(error.message)
+    throw error
   }
 }
 

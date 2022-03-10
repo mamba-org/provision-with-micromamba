@@ -57617,6 +57617,7 @@ async function run () {
     main()
   } catch (error) {
     core.setFailed(error.message)
+    throw error
   }
 }
 
