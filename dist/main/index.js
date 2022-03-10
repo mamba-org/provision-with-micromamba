@@ -85,6 +85,10 @@ function sha256 (s) {
   return h.digest().hexSlice()
 }
 
+function sha256Short (s) {
+  return sha256(s).substr(0, 8)
+}
+
 function touch (filename) {
   // https://remarkablemark.org/blog/2017/12/17/touch-file-nodejs/
   const time = new Date()
@@ -278,7 +282,7 @@ channel_priority: strict
 
     // Try to load the entire env from cache.
     if (inputs.cacheEnv) {
-      const envHash = sha256(fs.readFileSync(envFilePath)) + '-' + sha256(JSON.stringify(inputs.extraSpecs))
+      const envHash = sha256Short(fs.readFileSync(envFilePath)) + '-' + sha256Short(JSON.stringify(inputs.extraSpecs))
       const key = inputs.cacheEnvKey || `${MAMBA_PLATFORM}-${process.arch} ${today()} ${envHash}`
       envCacheArgs = [path.join(PATHS.micromambaEnvs, envName), `micromamba-env ${key}`]
       envCacheHit = await tryRestoreCache(...envCacheArgs)
@@ -333,6 +337,9 @@ Write-Host "Profile already exists and new content added"
     await executeBash(`source ${PATHS.bashprofile} && micromamba info && micromamba list`)
   }
   core.endGroup()
+
+  // This must always be last in main().
+  core.saveState('mainRanSuccessfully', true)
 }
 
 async function run () {

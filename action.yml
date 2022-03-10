@@ -48,8 +48,9 @@ inputs:
   cache-env-key:
     description: >-
       Custom environment cache key used with 'cache-env: true'.
-      The default environment cache key will invalidate the cache whenever the contents of the
-      'environment-file' or 'extra-specs' change, plus once per day.
+      With the default environment cache key, separate caches will be created for each
+      operating system (eg., Linux) and platform (eg., x64) and day (eg., 2022-01-31),
+      and the cache will be invalidated whenever the contents of 'environment-file' or 'extra-specs' change.
     required: false
   # cache-env-always-update:
   #   description: >-
@@ -62,4 +63,3 @@ runs:
   using: "node16"
   main: "dist/main/index.js"
   post: "dist/post/index.js"
-  post-if: success()
