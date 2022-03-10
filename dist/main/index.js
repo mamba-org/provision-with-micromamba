@@ -208,9 +208,15 @@ function selectSelectors (extraSpecs) {
 async function createOrUpdateEnv (envName, envFilePath, extraSpecs) {
   const envFolder = path.join(PATHS.micromambaEnvs, envName)
   const action = fs.existsSync(envFolder) ? 'update' : 'create'
+  const selectedExtraSpecs = selectSelectors(extraSpecs)
   core.info(`${action} env ${envName}`)
-  const quotedExtraSpecsStr = selectSelectors(extraSpecs).map(e => `"${e}"`).join(' ')
-  const cmd = `micromamba ${action} -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`
+  let cmd = `micromamba ${action} -n ${envName} --strict-channel-priority -y`
+  if (selectedExtraSpecs) {
+    cmd += ' ' + selectedExtraSpecs.map(e => `"${e}"`).join(' ')
+  }
+  if (envFilePath) {
+    cmd += ' -f ' + envFilePath
+  }
   if (MAMBA_PLATFORM === 'win') {
     await executePwsh(cmd)
   } else {
@@ -234,7 +240,8 @@ async function main () {
   }
   const micromambaUrl = MICROMAMBA_PLATFORM_URL + inputs.micromambaVersion
 
-  let envFilePath, envName
+  let envFilePath
+  let envName = inputs.envName
 
   // .condarc setup
   touch(PATHS.condarc)
@@ -245,11 +252,11 @@ always_yes: true
 show_channel_urls: true
 channel_priority: strict
 `
-    if (envFilePath.endsWith('.lock')) {
-      envName = inputs.envName
-    } else {
+    if (!envFilePath.endsWith('.lock')) {
       const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
-      envName = inputs.envName || envYaml.name
+      if (!envName) {
+        envName = envYaml.name
+      }
       if (envYaml.channels !== undefined) {
         condarcOpts += `channels: [${envYaml.channels.join(', ')}]`
       }
@@ -277,13 +284,18 @@ channel_priority: strict
 
   // Install env
   if (envName) {
-    core.startGroup(`Install environment ${envName} from ${envFilePath} ...`)
+    core.startGroup(`Install environment ${envName} from ${envFilePath || ''} ${inputs.extraSpecs || ''}...`)
     let downloadCacheHit, downloadCacheArgs, envCacheHit, envCacheArgs
 
     // Try to load the entire env from cache.
     if (inputs.cacheEnv) {
-      const envHash = sha256Short(fs.readFileSync(envFilePath)) + '-' + sha256Short(JSON.stringify(inputs.extraSpecs))
-      const key = inputs.cacheEnvKey || `${MAMBA_PLATFORM}-${process.arch} ${today()} ${envHash}`
+      let key = inputs.cacheEnvKey || `${MAMBA_PLATFORM}-${process.arch} ${today()}`
+      if (envFilePath) {
+        key += ' file: ' + sha256Short(fs.readFileSync(envFilePath))
+      }
+      if (inputs.extraSpecs) {
+        key += ' extra: ' + sha256Short(JSON.stringify(inputs.extraSpecs))
+      }
       envCacheArgs = [path.join(PATHS.micromambaEnvs, envName), `micromamba-env ${key}`]
       envCacheHit = await tryRestoreCache(...envCacheArgs)
     }

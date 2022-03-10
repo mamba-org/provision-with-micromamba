@@ -112,7 +112,7 @@ jobs:
           python -c "import os; env = os.path.basename(os.environ['CONDA_PREFIX']); assert env == 'testenv'"
 
   test_env_fail:
-    name: Test environment creation failure
+    name: Test env creation failure
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -133,3 +133,4 @@ jobs:
             micromamba <0.1
           cache-downloads: ${{ matrix.cache-downloads }}
           cache-env: ${{ matrix.cache-env }}
+        continue-on-error: true
