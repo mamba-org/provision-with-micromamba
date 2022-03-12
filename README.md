@@ -133,6 +133,8 @@ Due to a [limitation of GitHub Actions](https://docs.github.com/en/actions/using
 any download or environment caches created on a branch will not be available on the main/parent branch
 after merging. This also applies to PRs.
 
+In contrast, branches *can* use a cache created on the main/parent branch. 
+
 See also [this thread](https://github.com/mamba-org/provision-with-micromamba/issues/42#issuecomment-1062007161).
 
 ### When to use download caching
