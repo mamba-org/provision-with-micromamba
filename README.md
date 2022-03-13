@@ -10,7 +10,7 @@ GitHub Action to provision a CI instance using micromamba.
 
 ### `environment-file`
 
-The environment.yml or .lock file for the conda environment. If 'false', no enviroment will be created (only Micromamba will be installed).
+The environment.yml or .lock file for the conda environment. If 'false', no enviroment will be created (only Micromamba will be installed) and you should provide 'channels'.
 
 ### `environment-name`
 
@@ -23,6 +23,10 @@ The environment.yml or .lock file for the conda environment. If 'false', no envi
 ### `extra-specs`
 
 (Optional) Additional specifications (packages) to install. Pretty useful when using matrix builds to pin versions of a test/run dependency. For multiple packages, use multiline syntax (see examples). Note that selectors (e.g. `sel(linux): my-linux-package`, `sel(osx): my-osx-package`, `sel(win): my-win-package`) are available.
+
+### `channels`
+
+(Optional) Comma separated list of channels to use in order of priority (eg., `conda-forge,my-private-channel`)
 
 ### `cache-downloads`
 

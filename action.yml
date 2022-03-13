@@ -7,7 +7,8 @@ inputs:
   environment-file:
     description: >-
       The environment.yml or .lock file for the conda environment.
-      If 'false', no enviroment will be created (only Micromamba will be installed).
+      If 'false', no enviroment will be created (only Micromamba will be installed)
+      and you should provide 'channels'.
     required: true
     default: environment.yml
   environment-name:
@@ -28,6 +29,11 @@ inputs:
       Note that selectors
       (e.g. `sel(linux): my-linux-package`, `sel(osx): my-osx-package`, `sel(win): my-win-package`)
       are available.
+    required: false
+    default: ""
+  channels:
+    description: >-
+      Comma separated list of channels to use in order of priority (eg., `conda-forge,my-private-channel`)
     required: false
     default: ""
   cache-downloads:

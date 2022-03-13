@@ -210,6 +210,7 @@ async function main () {
     envName: core.getInput('environment-name'),
     envFile: core.getInput('environment-file'),
     extraSpecs: getInputAsArray('extra-specs'),
+    channels: core.getInput('channels'),
     cacheDownloads: core.getBooleanInput('cache-downloads'),
     cacheDownloadsKey: core.getInput('cache-downloads-key'),
     cacheEnv: core.getBooleanInput('cache-env'),
@@ -218,31 +219,33 @@ async function main () {
     // cacheEnvAlwaysUpdate: core.getBooleanInput('cache-env-always-update')
     cacheEnvAlwaysUpdate: false
   }
-  const micromambaUrl = MICROMAMBA_PLATFORM_URL + inputs.micromambaVersion
 
-  let envFilePath
-  let envName = inputs.envName
+  let envFilePath, envYaml
 
-  // .condarc setup
-  touch(PATHS.condarc)
-  if (inputs.envFile !== 'false') {
+  // Read environment file
+  if (inputs.envFile === 'false') {
+    if (!inputs.envName) {
+      throw Error("Must provide 'environment-name' for 'environment-file: false'")
+    }
+  } else {
     envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', inputs.envFile)
-    let condarcOpts = `
+    if (!envFilePath.endsWith('.lock')) {
+      envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
+    }
+  }
+
+  // Setup .condarc
+  touch(PATHS.condarc)
+  let condarcOpts = `
 always_yes: true
 show_channel_urls: true
 channel_priority: strict
 `
-    if (!envFilePath.endsWith('.lock')) {
-      const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
-      if (!envName) {
-        envName = envYaml.name
-      }
-      if (envYaml.channels !== undefined) {
-        condarcOpts += `channels: [${envYaml.channels.join(', ')}]`
-      }
-    }
-    fs.appendFileSync(PATHS.condarc, condarcOpts)
+  const channels = inputs.channels + (envYaml?.channels || []).join(', ')
+  if (channels) {
+    condarcOpts += `channels: [${channels}]`
   }
+  fs.appendFileSync(PATHS.condarc, condarcOpts)
   core.debug(`Contents of ${PATHS.condarc}:\n${fs.readFileSync(PATHS.condarc)}`)
 
   // Install micromamba
@@ -253,6 +256,7 @@ channel_priority: strict
       linux: installMicromambaPosix,
       osx: installMicromambaPosix
     }[MAMBA_PLATFORM]
+    const micromambaUrl = MICROMAMBA_PLATFORM_URL + inputs.micromambaVersion
     await installer(micromambaUrl)
     core.exportVariable('MAMBA_ROOT_PREFIX', PATHS.micromambaRoot)
     core.exportVariable('MAMBA_EXE', PATHS.micromambaExe)
@@ -263,6 +267,7 @@ channel_priority: strict
   touch(PATHS.bashprofile)
 
   // Install env
+  const envName = inputs.envName || envYaml?.name
   if (envName) {
     core.startGroup(`Install environment ${envName} from ${envFilePath || ''} ${inputs.extraSpecs || ''}...`)
     let downloadCacheHit, downloadCacheArgs, envCacheHit, envCacheArgs
@@ -291,7 +296,7 @@ channel_priority: strict
     }
 
     // Add micromamba activate to profile
-    const autoactivateCmd = `micromamba activate ${envName}`
+    const autoactivateCmd = `micromamba activate ${envName};`
     if (MAMBA_PLATFORM === 'win') {
       const powershellAutoActivateEnv = `if (!(Test-Path $profile))
 {
