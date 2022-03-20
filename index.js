@@ -53,6 +53,25 @@ function executePwsh (command) {
   return executeShell('powershell', '-command', command)
 }
 
+async function retry (callback, backoffTimes = [2000, 5000, 10000]) {
+  for (const backoff of backoffTimes.concat(null)) {
+    if (backoff) {
+      try {
+        return await callback()
+      } catch (error) {
+        core.warning(`${callback} failed, retrying in ${backoff} seconds: ${error}`)
+        await sleep(backoff)
+      }
+    } else {
+      return await callback()
+    }
+  }
+}
+
+function sleep (ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 async function tryRestoreCache (path, key, ...args) {
   try {
     const hitKey = await cache.restoreCache([path], key, ...args)
@@ -104,7 +123,7 @@ async function installMicromambaPosix (micromambaUrl) {
       linux: 'wget -qO- --retry-connrefused --waitretry=10 -t 5'
     }[MAMBA_PLATFORM]
     const downloadCmd = `${downloadProg} ${micromambaUrl} | tar -xvjO bin/micromamba > ${PATHS.micromambaExe}`
-    await executeBash(downloadCmd)
+    await retry(() => executeBash(downloadCmd))
     saveCacheOnPost(...cacheArgs)
   }
 
@@ -152,7 +171,7 @@ if(-not($success)){exit}`
   const cacheArgs = [PATHS.micromambaBinFolder, cacheKey]
   if (!await tryRestoreCache(...cacheArgs)) {
     await executePwsh(`mkdir -path ${PATHS.micromambaBinFolder}`)
-    await executePwsh(powershellDownloader)
+    await retry(() => executePwsh(powershellDownloader))
     await executePwsh(
       '$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
       'tar.exe -xvjf ~/micromamba-bin/micromamba.tar.bz2 --strip-components 2 -C ~/micromamba-bin Library/bin/micromamba.exe;'
