@@ -1,0 +1,35 @@
+name: Test in container
+on:
+  push:
+    branches:
+      - main
+  pull_request: null
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    container: ${{ matrix.container }}
+    strategy:
+      fail-fast: false
+      matrix:
+        container: ["ubuntu:latest"]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install curl
+        run: apt update && apt install -y curl
+
+      - name: install mamba
+        uses: ./
+
+      - name: run python in bash
+        shell: bash -l {0}
+        run: |
+          which micromamba
+          micromamba info
+          which python
+          python -VV
+          python -c "import numpy"
+          echo "MAMBA_EXE=$MAMBA_EXE"
+          python test/test_path.py

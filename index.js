@@ -9,6 +9,7 @@ const yaml = require('js-yaml')
 const cache = require('@actions/cache')
 const core = require('@actions/core')
 const exec = require('@actions/exec').exec
+const io = require('@actions/io')
 
 const MICROMAMBA_BASE_URL = 'https://micro.mamba.pm/api/micromamba'
 const MAMBA_PLATFORM = { darwin: 'osx', linux: 'linux', win32: 'win' }[process.platform]
@@ -113,15 +114,22 @@ function saveCacheOnPost (paths, key, options) {
   core.saveState('postCacheArgs', JSON.stringify([...old, [paths, key, options]]))
 }
 
+async function getDownloadProg () {
+  if (await io.which('wget')) {
+    return 'wget'
+  } else if (await io.which('curl')) {
+    return 'curl'
+  } else {
+    throw Error("Couldn't find neither of 'wget' and 'curl'")
+  }
+}
+
 async function installMicromambaPosix (micromambaUrl) {
   const cacheKey = `micromamba-bin ${micromambaUrl} ${today()}`
   const cacheArgs = [PATHS.micromambaBinFolder, cacheKey]
   if (!await tryRestoreCache(...cacheArgs)) {
     await executeBash(`mkdir -p ${PATHS.micromambaBinFolder}`)
-    const downloadProg = {
-      osx: 'curl -Ls --retry 5 --retry-delay 1',
-      linux: 'wget -qO- --retry-connrefused --waitretry=10 -t 5'
-    }[MAMBA_PLATFORM]
+    const downloadProg = await getDownloadProg() === 'wget' ? 'wget -qO- --retry-connrefused --waitretry=10 -t 5' : 'curl -Ls --retry 5 --retry-delay 1'
     const downloadCmd = `${downloadProg} ${micromambaUrl} | tar -xvjO bin/micromamba > ${PATHS.micromambaExe}`
     await retry(() => executeBash(downloadCmd))
     saveCacheOnPost(...cacheArgs)
@@ -137,15 +145,23 @@ async function installMicromambaPosix (micromambaUrl) {
   } else {
     // linux
     // on linux we move the bashrc to a backup and then restore
-    await executeBash(`mv ${PATHS.bashrc} ${PATHS.bashrcBak}`)
+    let haveBashrcBackup
+    if (fs.existsSync(PATHS.bashrc)) {
+      fs.renameSync(PATHS.bashrc, PATHS.bashrcBak)
+      haveBashrcBackup = true
+    }
     touch(PATHS.bashrc)
     try {
       await executeBash(`${PATHS.micromambaExe} shell init -s bash -p ~/micromamba -y`)
       await executeBash(`${PATHS.micromambaExe} shell init -s zsh -p ~/micromamba -y`)
       fs.appendFileSync(PATHS.bashprofile, '\n' + fs.readFileSync(PATHS.bashrc, 'utf8'), 'utf8')
-      await executeBash(`mv ${PATHS.bashrcBak} ${PATHS.bashrc}`)
+      if (haveBashrcBackup) {
+        fs.renameSync(PATHS.bashrcBak, PATHS.bashrc)
+      }
     } catch (error) {
-      await executeBash(`mv ${PATHS.bashrcBak} ${PATHS.bashrc}`)
+      if (haveBashrcBackup) {
+        fs.renameSync(PATHS.bashrcBak, PATHS.bashrc)
+      }
       throw error
     }
   }
