@@ -77,7 +77,8 @@ jobs:
           environment-file: false
           channels: conda-forge
           environment-name: test-broken-input-1
-          extra-specs: xtensor
+          extra-specs: xtensor=0.24
+            zlib
 
       - name: install mamba 2
         uses: ./
@@ -86,10 +87,15 @@ jobs:
           channels: conda-forge
           environment-name: test-broken-input-2
           extra-specs:
-            xtensor
+            xtensor=0.24
+            zlib
 
       - name: list environment 1
-        run: micromamba list -n test-broken-input-1 | grep xtensor
+        run: |
+          micromamba list -n test-broken-input-1 | grep xtensor
+          micromamba list -n test-broken-input-1 | grep zlib
 
       - name: list environment 2
-        run: micromamba list -n test-broken-input-2 | grep xtensor
+        run: |
+          micromamba list -n test-broken-input-2 | grep xtensor
+          micromamba list -n test-broken-input-2 | grep zlib
