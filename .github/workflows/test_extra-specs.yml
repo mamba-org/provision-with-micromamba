@@ -59,3 +59,35 @@ jobs:
           if micromamba list | grep -q xtensor; then exit 1; fi
           if micromamba list | grep -q cmake; then exit 1; fi
           if ! micromamba list | grep -q ninja; then exit 1; fi
+
+  test_broken_input:
+    name: Test broken extra-specs input
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install mamba 1
+        uses: ./
+        with:
+          environment-file: false
+          environment-name: test-broken-input-1
+          extra-specs: xtensor
+
+      - name: install mamba 2
+        uses: ./
+        with:
+          environment-file: false
+          environment-name: test-broken-input-2
+          extra-specs:
+            xtensor
+
+      - name: list environment 1
+        run: micromamba list -n test-broken-input-1 | grep xtensor
+
+      - name: list environment 2
+        run: micromamba list -n test-broken-input-2 | grep xtensor
