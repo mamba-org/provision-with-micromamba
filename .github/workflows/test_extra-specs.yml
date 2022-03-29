@@ -75,6 +75,7 @@ jobs:
         uses: ./
         with:
           environment-file: false
+          channels: conda-forge
           environment-name: test-broken-input-1
           extra-specs: xtensor
 
@@ -82,6 +83,7 @@ jobs:
         uses: ./
         with:
           environment-file: false
+          channels: conda-forge
           environment-name: test-broken-input-2
           extra-specs:
             xtensor
