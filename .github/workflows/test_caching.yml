@@ -27,7 +27,6 @@ jobs:
           cache-downloads: true
           cache-downloads-key: download-downloadkey-${{ github.sha }}-${{ github.run_attempt }}
 
-
       - name: test environment name
         run: |
           python -c "import os; env = os.path.basename(os.environ['CONDA_PREFIX']); assert env == 'testenv'"

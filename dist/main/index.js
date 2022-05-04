@@ -315,7 +315,7 @@ Write-Host "Profile already exists and new content added"
     core.info(`Contents of ${PATHS.bashprofile}:\n${fs.readFileSync(PATHS.bashprofile)}`)
 
     // Save cache on workflow success
-    if ( ( !envCacheHit || inputs.cacheEnvAlwaysUpdate ) && inputs.cacheDownloads && !downloadCacheHit ) {
+    if ((!envCacheHit || inputs.cacheEnvAlwaysUpdate) && inputs.cacheDownloads && !downloadCacheHit) {
       saveCacheOnPost(...downloadCacheArgs)
     }
     if (inputs.cacheEnv && !envCacheHit) {
