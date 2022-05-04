@@ -25,6 +25,8 @@ jobs:
         uses: ./
         with:
           cache-downloads: true
+          cache-downloads-key: download-downloadkey-${{ github.sha }}-${{ github.run_attempt }}
+
 
       - name: test environment name
         run: |
@@ -45,6 +47,7 @@ jobs:
         uses: ./
         with:
           cache-downloads: true
+          cache-downloads-key: download-downloadkey-${{ github.sha }}-${{ github.run_attempt }}
 
       - name: test environment name
         run: |
@@ -64,6 +67,7 @@ jobs:
         uses: ./
         with:
           cache-env: true
+          cache-env-key: env-envkey-${{ github.sha }}-${{ github.run_attempt }}
 
       - name: test environment name
         run: |
@@ -84,6 +88,7 @@ jobs:
         uses: ./
         with:
           cache-env: true
+          cache-env-key: env-envkey-${{ github.sha }}-${{ github.run_attempt }}
 
       - name: test environment name
         run: |
@@ -106,6 +111,52 @@ jobs:
         with:
           cache-env: true
           cache-env-always-update: true
+          cache-env-key: env-envkey-${{ github.sha }}-${{ github.run_attempt }}
+
+      - name: test environment name
+        run: |
+          python -c "import os; env = os.path.basename(os.environ['CONDA_PREFIX']); assert env == 'testenv'"
+
+  test_download_and_env1:
+    name: Test download+env cache 1/2
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install mamba
+        uses: ./
+        with:
+          cache-downloads: true
+          cache-env: true
+          cache-downloads-key: download-env-downloadkey-${{ github.sha }}-${{ github.run_attempt }}
+          cache-env-key: download-env-envkey-${{ github.sha }}-${{ github.run_attempt }}
+
+      - name: test environment name
+        run: |
+          python -c "import os; env = os.path.basename(os.environ['CONDA_PREFIX']); assert env == 'testenv'"
+
+  test_download_and_env2:
+    name: Test download+env cache 2/2
+    needs: [test_download_and_env1]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install mamba
+        uses: ./
+        with:
+          cache-downloads: true
+          cache-env: true
+          cache-downloads-key: download-env-downloadkey-${{ github.sha }}-${{ github.run_attempt }}
+          cache-env-key: download-env-envkey-${{ github.sha }}-${{ github.run_attempt }}
 
       - name: test environment name
         run: |
