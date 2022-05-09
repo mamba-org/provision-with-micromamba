@@ -110,3 +110,27 @@ jobs:
       - name: test environment name
         run: |
           python -c "import os; env = os.path.basename(os.environ['CONDA_PREFIX']); assert env == 'testenv'"
+
+  test_env_fail:
+    name: Test env creation failure
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - cache-downloads: true
+            cache-env: false
+          - cache-downloads: false
+            cache-env: true
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install mamba
+        uses: ./
+        with:
+          environment-file: false
+          environment-name: test-fail
+          extra-specs: |
+            micromamba <0.1
+          cache-downloads: ${{ matrix.cache-downloads }}
+          cache-env: ${{ matrix.cache-env }}
+        continue-on-error: true

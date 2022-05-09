@@ -7,7 +7,8 @@ inputs:
   environment-file:
     description: >-
       The environment.yml or .lock file for the conda environment.
-      If 'false', no enviroment will be created (only Micromamba will be installed).
+      If 'false', no enviroment will be created (only Micromamba will be installed)
+      and you should provide 'channels'.
     required: true
     default: environment.yml
   environment-name:
@@ -30,6 +31,11 @@ inputs:
       are available.
     required: false
     default: ""
+  channels:
+    description: >-
+      Comma separated list of channels to use in order of priority (eg., `conda-forge,my-private-channel`)
+    required: false
+    default: ""
   cache-downloads:
     description: >-
       If 'true', cache downloaded packages across calls to the provision-with-micromamba action.
@@ -48,8 +54,9 @@ inputs:
   cache-env-key:
     description: >-
       Custom environment cache key used with 'cache-env: true'.
-      The default environment cache key will invalidate the cache whenever the contents of the
-      'environment-file' or 'extra-specs' change, plus once per day.
+      With the default environment cache key, separate caches will be created for each
+      operating system (eg., Linux) and platform (eg., x64) and day (eg., 2022-01-31),
+      and the cache will be invalidated whenever the contents of 'environment-file' or 'extra-specs' change.
     required: false
   # cache-env-always-update:
   #   description: >-
@@ -62,4 +69,3 @@ runs:
   using: "node16"
   main: "dist/main/index.js"
   post: "dist/post/index.js"
-  post-if: success()

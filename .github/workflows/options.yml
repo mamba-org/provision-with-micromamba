@@ -21,6 +21,7 @@ jobs:
         uses: ./
         with:
           environment-file: false
+          environment-name: nofile
 
       - name: install mamba
         uses: ./
@@ -88,3 +89,20 @@ jobs:
           pytest --version
           python -c "import pytest; assert pytest.__version__.startswith(str(${{ matrix.pytest }}))"
         if: runner.os != 'Windows'
+
+  test_channels:
+    name: Test channels
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install mamba
+        uses: ./
+        with:
+          environment-file: false
+          environment-name: test-channels
+          extra-specs: |
+            xtensor
+          channels: conda-forge,blah

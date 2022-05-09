@@ -49,24 +49,39 @@ function getInputAsArray (name) {
     .filter(x => x !== '')
 }
 
-async function executeBash (command, opts = { setFailed: true }) {
+async function executeShell (...command) {
   try {
-    await exec('bash', ['-c', command])
+    await exec(command[0], command.slice(1))
   } catch (error) {
-    if (opts.setFailed) {
-      core.setFailed(error.message)
+    throw Error(`Failed to execute ${JSON.stringify(command)}`)
+  }
+}
+
+function executeBash (command) {
+  return executeShell('bash', '-c', command)
+}
+
+function executePwsh (command) {
+  return executeShell('powershell', '-command', command)
+}
+
+async function retry (callback, backoffTimes = [2000, 5000, 10000]) {
+  for (const backoff of backoffTimes.concat(null)) {
+    if (backoff) {
+      try {
+        return await callback()
+      } catch (error) {
+        core.warning(`${callback} failed, retrying in ${backoff} seconds: ${error}`)
+        await sleep(backoff)
+      }
     } else {
-      throw error
+      return await callback()
     }
   }
 }
 
-async function executePwsh (command) {
-  try {
-    await exec('powershell', ['-command', command])
-  } catch (error) {
-    core.setFailed(error.message)
-  }
+function sleep (ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 async function tryRestoreCache (path, key, ...args) {
@@ -83,6 +98,10 @@ function sha256 (s) {
   const h = crypto.createHash('sha256')
   h.update(s)
   return h.digest().hexSlice()
+}
+
+function sha256Short (s) {
+  return sha256(s).substr(0, 8)
 }
 
 function touch (filename) {
@@ -116,11 +135,7 @@ async function installMicromambaPosix (micromambaUrl) {
       linux: 'wget -qO- --retry-connrefused --waitretry=10 -t 5'
     }[MAMBA_PLATFORM]
     const downloadCmd = `${downloadProg} ${micromambaUrl} | tar -xvjO bin/micromamba > ${PATHS.micromambaExe}`
-    try {
-      await executeBash(downloadCmd, { setFailed: false })
-    } catch (error) {
-      await executeBash(downloadCmd)
-    }
+    await retry(() => executeBash(downloadCmd))
     saveCacheOnPost(...cacheArgs)
   }
 
@@ -168,7 +183,7 @@ if(-not($success)){exit}`
   const cacheArgs = [PATHS.micromambaBinFolder, cacheKey]
   if (!await tryRestoreCache(...cacheArgs)) {
     await executePwsh(`mkdir -path ${PATHS.micromambaBinFolder}`)
-    await executePwsh(powershellDownloader)
+    await retry(() => executePwsh(powershellDownloader))
     await executePwsh(
       '$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
       'tar.exe -xvjf ~/micromamba-bin/micromamba.tar.bz2 --strip-components 2 -C ~/micromamba-bin Library/bin/micromamba.exe;'
@@ -204,9 +219,15 @@ function selectSelectors (extraSpecs) {
 async function createOrUpdateEnv (envName, envFilePath, extraSpecs) {
   const envFolder = path.join(PATHS.micromambaEnvs, envName)
   const action = fs.existsSync(envFolder) ? 'update' : 'create'
+  const selectedExtraSpecs = selectSelectors(extraSpecs)
   core.info(`${action} env ${envName}`)
-  const quotedExtraSpecsStr = selectSelectors(extraSpecs).map(e => `"${e}"`).join(' ')
-  const cmd = `micromamba ${action} -n ${envName} ${quotedExtraSpecsStr} --strict-channel-priority -y -f ${envFilePath}`
+  let cmd = `micromamba ${action} -n ${envName} --strict-channel-priority -y`
+  if (selectedExtraSpecs) {
+    cmd += ' ' + selectedExtraSpecs.map(e => `"${e}"`).join(' ')
+  }
+  if (envFilePath) {
+    cmd += ' -f ' + envFilePath
+  }
   if (MAMBA_PLATFORM === 'win') {
     await executePwsh(cmd)
   } else {
@@ -220,6 +241,7 @@ async function main () {
     envName: core.getInput('environment-name'),
     envFile: core.getInput('environment-file'),
     extraSpecs: getInputAsArray('extra-specs'),
+    channels: core.getInput('channels'),
     cacheDownloads: core.getBooleanInput('cache-downloads'),
     cacheDownloadsKey: core.getInput('cache-downloads-key'),
     cacheEnv: core.getBooleanInput('cache-env'),
@@ -228,30 +250,33 @@ async function main () {
     // cacheEnvAlwaysUpdate: core.getBooleanInput('cache-env-always-update')
     cacheEnvAlwaysUpdate: false
   }
-  const micromambaUrl = MICROMAMBA_PLATFORM_URL + inputs.micromambaVersion
 
-  let envFilePath, envName
+  let envFilePath, envYaml
 
-  // .condarc setup
-  touch(PATHS.condarc)
-  if (inputs.envFile !== 'false') {
+  // Read environment file
+  if (inputs.envFile === 'false') {
+    if (!inputs.envName) {
+      throw Error("Must provide 'environment-name' for 'environment-file: false'")
+    }
+  } else {
     envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', inputs.envFile)
-    let condarcOpts = `
+    if (!envFilePath.endsWith('.lock')) {
+      envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
+    }
+  }
+
+  // Setup .condarc
+  touch(PATHS.condarc)
+  let condarcOpts = `
 always_yes: true
 show_channel_urls: true
 channel_priority: strict
 `
-    if (envFilePath.endsWith('.lock')) {
-      envName = inputs.envName
-    } else {
-      const envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
-      envName = inputs.envName || envYaml.name
-      if (envYaml.channels !== undefined) {
-        condarcOpts += `channels: [${envYaml.channels.join(', ')}]`
-      }
-    }
-    fs.appendFileSync(PATHS.condarc, condarcOpts)
+  const channels = inputs.channels + (envYaml?.channels || []).join(', ')
+  if (channels) {
+    condarcOpts += `channels: [${channels}]`
   }
+  fs.appendFileSync(PATHS.condarc, condarcOpts)
   core.debug(`Contents of ${PATHS.condarc}:\n${fs.readFileSync(PATHS.condarc)}`)
 
   // Install micromamba
@@ -262,6 +287,7 @@ channel_priority: strict
       linux: installMicromambaPosix,
       osx: installMicromambaPosix
     }[MAMBA_PLATFORM]
+    const micromambaUrl = MICROMAMBA_PLATFORM_URL + inputs.micromambaVersion
     await installer(micromambaUrl)
     core.exportVariable('MAMBA_ROOT_PREFIX', PATHS.micromambaRoot)
     core.exportVariable('MAMBA_EXE', PATHS.micromambaExe)
@@ -272,14 +298,20 @@ channel_priority: strict
   touch(PATHS.bashprofile)
 
   // Install env
+  const envName = inputs.envName || envYaml?.name
   if (envName) {
-    core.startGroup(`Install environment ${envName} from ${envFilePath} ...`)
+    core.startGroup(`Install environment ${envName} from ${envFilePath || ''} ${inputs.extraSpecs || ''}...`)
     let downloadCacheHit, downloadCacheArgs, envCacheHit, envCacheArgs
 
     // Try to load the entire env from cache.
     if (inputs.cacheEnv) {
-      const envHash = sha256(fs.readFileSync(envFilePath)) + '-' + sha256(JSON.stringify(inputs.extraSpecs))
-      const key = inputs.cacheEnvKey || `${MAMBA_PLATFORM}-${process.arch} ${today()} ${envHash}`
+      let key = inputs.cacheEnvKey || `${MAMBA_PLATFORM}-${process.arch} ${today()}`
+      if (envFilePath) {
+        key += ' file: ' + sha256Short(fs.readFileSync(envFilePath))
+      }
+      if (inputs.extraSpecs) {
+        key += ' extra: ' + sha256Short(JSON.stringify(inputs.extraSpecs))
+      }
       envCacheArgs = [path.join(PATHS.micromambaEnvs, envName), `micromamba-env ${key}`]
       envCacheHit = await tryRestoreCache(...envCacheArgs)
     }
@@ -295,7 +327,7 @@ channel_priority: strict
     }
 
     // Add micromamba activate to profile
-    const autoactivateCmd = `micromamba activate ${envName}`
+    const autoactivateCmd = `micromamba activate ${envName};`
     if (MAMBA_PLATFORM === 'win') {
       const powershellAutoActivateEnv = `if (!(Test-Path $profile))
 {
@@ -333,6 +365,9 @@ Write-Host "Profile already exists and new content added"
     await executeBash(`source ${PATHS.bashprofile} && micromamba info && micromamba list`)
   }
   core.endGroup()
+
+  // This must always be last in main().
+  core.saveState('mainRanSuccessfully', true)
 }
 
 async function run () {
@@ -340,6 +375,7 @@ async function run () {
     await main()
   } catch (error) {
     core.setFailed(error.message)
+    throw error
   }
 }
 
