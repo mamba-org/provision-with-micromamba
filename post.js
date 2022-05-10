@@ -35,6 +35,10 @@ async function trimPkgsCacheFolder (cacheFolder) {
 }
 
 async function main () {
+  if (!core.getState('mainRanSuccessfully')) {
+    core.notice('Conda environment setup failed. Cache will not be saved.')
+    return
+  }
   for (const [path, key, options] of JSON.parse(core.getState('postCacheArgs') || '[]')) {
     if (key.startsWith('micromamba-pkgs ')) {
       await trimPkgsCacheFolder(path)
@@ -53,6 +57,7 @@ async function run () {
     main()
   } catch (error) {
     core.setFailed(error.message)
+    throw error
   }
 }
 

@@ -10,7 +10,7 @@ GitHub Action to provision a CI instance using micromamba.
 
 ### `environment-file`
 
-The environment.yml or .lock file for the conda environment. If 'false', no enviroment will be created (only Micromamba will be installed).
+The environment.yml or .lock file for the conda environment. If 'false', no enviroment will be created (only Micromamba will be installed) and you should provide 'channels'.
 
 ### `environment-name`
 
@@ -23,6 +23,10 @@ The environment.yml or .lock file for the conda environment. If 'false', no envi
 ### `extra-specs`
 
 (Optional) Additional specifications (packages) to install. Pretty useful when using matrix builds to pin versions of a test/run dependency. For multiple packages, use multiline syntax (see examples). Note that selectors (e.g. `sel(linux): my-linux-package`, `sel(osx): my-osx-package`, `sel(win): my-win-package`) are available.
+
+### `channels`
+
+(Optional) Comma separated list of channels to use in order of priority (eg., `conda-forge,my-private-channel`)
 
 ### `cache-downloads`
 
@@ -38,7 +42,7 @@ The environment.yml or .lock file for the conda environment. If 'false', no envi
 
 ### `cache-env-key`
 
-(Optional) Custom environment cache key used with 'cache-env: true'. The default environment cache key will invalidate the cache whenever the contents of the 'environment-file' or 'extra-specs' change, plus once per day.
+(Optional) Custom environment cache key used with 'cache-env: true'. With the default environment cache key, separate caches will be created for each operating system (eg., Linux) and platform (eg., x64) and day (eg., 2022-01-31), and the cache will be invalidated whenever the contents of 'environment-file' or 'extra-specs' change.
 
 <!-- end generated -->
 
@@ -124,6 +128,26 @@ or `extra-specs` change, plus once per day. See the `cache-env-key` option for c
   with:
     cache-env: true
 ```
+
+## Notes on caching
+
+### Branches have separate caches
+
+Due to a [limitation of GitHub Actions](https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows#restrictions-for-accessing-a-cache)
+any download or environment caches created on a branch will not be available on the main/parent branch
+after merging. This also applies to PRs.
+
+In contrast, branches *can* use a cache created on the main/parent branch. 
+
+See also [this thread](https://github.com/mamba-org/provision-with-micromamba/issues/42#issuecomment-1062007161).
+
+### When to use download caching
+
+Please see [this comment for now](https://github.com/mamba-org/provision-with-micromamba/pull/38#discussion_r808837618).
+
+### When to use environment caching
+
+Please see [this comment for now](https://github.com/mamba-org/provision-with-micromamba/pull/38#discussion_r808837618).
 
 ## More examples
 
