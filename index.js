@@ -263,7 +263,7 @@ channel_priority: strict
 }
 
 async function installEnvironment (inputs, envFilePath, envYaml) {
-  core.warning([envFilePath, inputs.extraSpecs])
+  core.warning([envFilePath, inputs.extraSpecs, !envFilePath, !inputs.extraSpecs])
   if (!envFilePath && !inputs.extraSpecs) {
     // Nothing to install
     return
