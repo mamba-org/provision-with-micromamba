@@ -108,7 +108,7 @@ jobs:
           channels: conda-forge,blah
 
   test_environment_without_name:
-    name: Test environment.yml without name: attribute
+    name: "Test environment.yml without name: attribute"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
