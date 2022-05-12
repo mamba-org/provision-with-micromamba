@@ -126,7 +126,7 @@ function saveCacheOnPost (paths, key, options) {
 }
 
 async function installMicromambaPosix (micromambaUrl) {
-  const posixDownloader = `curl ${micromambaUrl} -Ls --retry 5 --retry-delay 1
+  const posixDownloader = `curl ${micromambaUrl} -Ls --retry 5 --retry-delay 1 \
     | tar --strip-components=1 -vxjC ${PATHS.micromambaBinFolder} bin/micromamba`
   const cacheKey = `micromamba-bin ${micromambaUrl} ${today()}`
   const cacheArgs = [PATHS.micromambaBinFolder, cacheKey]
