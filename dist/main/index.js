@@ -329,7 +329,8 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
     envCacheHit = await tryRestoreCache(...envCacheArgs)
   }
 
-  if (!envCacheHit || inputs.cacheEnvAlwaysUpdate) {
+  const shouldTryDownloadCache = !envCacheHit || inputs.cacheEnvAlwaysUpdate
+  if (shouldTryDownloadCache) {
     // Try to restore the download cache.
     if (inputs.cacheDownloads) {
       const key = inputs.cacheDownloadsKey || `${MAMBA_PLATFORM}-${process.arch} ${today()}`
@@ -360,7 +361,7 @@ Write-Host "Profile already exists and new content added"
   core.info(`Contents of ${PATHS.bashprofile}:\n${fs.readFileSync(PATHS.bashprofile)}`)
 
   // Save cache on workflow success
-  if (inputs.cacheDownloads && !downloadCacheHit) {
+  if (shouldTryDownloadCache && inputs.cacheDownloads && !downloadCacheHit) {
     saveCacheOnPost(...downloadCacheArgs)
   }
   if (inputs.cacheEnv && !envCacheHit) {
