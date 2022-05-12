@@ -275,6 +275,7 @@ channel_priority: strict
 }
 
 async function installEnvironment (inputs, envFilePath, envYaml) {
+  core.warning([envFilePath, inputs.extraSpecs])
   if (!envFilePath && !inputs.extraSpecs) {
     // Nothing to install
     return
@@ -282,13 +283,8 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
 
   // Determine environment name
   let envName
-  if (inputs.envFile === 'false') {
-    if (inputs.envName) {
-      envName = inputs.envName
-    } else {
-      throw Error("Must provide 'environment-name' for 'environment-file: false'")
-    }
-  } else {
+  if (envFilePath) {
+    // Have environment.yml or .lock file
     if (envYaml) {
       if (inputs.envName) {
         envName = inputs.envName
@@ -299,12 +295,20 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
           throw Error("Must provide 'environment-name' if environment.yml doesn't provide a 'name' attribute")
         }
       }
-    } else { // .lock file
+    } else {
+      // .lock file
       if (inputs.envName) {
         envName = inputs.envName
       } else {
         throw Error("Must provide 'environment-name' for .lock files")
       }
+    }
+  } else {
+    // Have extra-specs only
+    if (inputs.envName) {
+      envName = inputs.envName
+    } else {
+      throw Error("Must provide 'environment-name' for 'environment-file: false'")
     }
   }
 
