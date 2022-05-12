@@ -244,17 +244,40 @@ async function main () {
     cacheEnvAlwaysUpdate: false
   }
 
-  let envFilePath, envYaml
-
   // Read environment file
-  if (inputs.envFile === 'false') {
-    if (!inputs.envName) {
-      throw Error("Must provide 'environment-name' for 'environment-file: false'")
-    }
-  } else {
+  let envFilePath, envYaml
+  if (inputs.envFile !== 'false') {
     envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', inputs.envFile)
     if (!envFilePath.endsWith('.lock')) {
       envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
+    }
+  }
+
+  // Determine environment name
+  let envName
+  if (inputs.envFile === 'false') {
+    if (inputs.envName) {
+      envName = inputs.envName
+    } else {
+      throw Error("Must provide 'environment-name' for 'environment-file: false'")
+    }
+  } else {
+    if (envYaml) {
+      if (inputs.envName) {
+        envName = inputs.envName
+      } else {
+        if (envYaml?.name) {
+          envName = envYaml?.name
+        } else {
+          throw Error("Must provide 'environment-name' if environment.yml doesn't provide a 'name' attribute")
+        }
+      }
+    } else { // .lock file
+      if (inputs.envName) {
+        envName = inputs.envName
+      } else {
+        throw Error("Must provide 'environment-name' for .lock files")
+      }
     }
   }
 
@@ -291,8 +314,7 @@ channel_priority: strict
   touch(PATHS.bashprofile)
 
   // Install env
-  const envName = inputs.envName || envYaml?.name
-  if (envName) {
+  if (envFilePath || inputs.extraSpecs) {
     core.startGroup(`Install environment ${envName} from ${envFilePath || ''} ${inputs.extraSpecs || ''}...`)
     let downloadCacheHit, downloadCacheArgs, envCacheHit, envCacheArgs
 
