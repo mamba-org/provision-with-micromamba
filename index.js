@@ -228,29 +228,44 @@ async function createOrUpdateEnv (envName, envFilePath, extraSpecs) {
   }
 }
 
-async function main () {
-  const inputs = {
-    micromambaVersion: core.getInput('micromamba-version'),
-    envName: core.getInput('environment-name'),
-    envFile: core.getInput('environment-file'),
-    extraSpecs: getInputAsArray('extra-specs'),
-    channels: core.getInput('channels'),
-    cacheDownloads: core.getBooleanInput('cache-downloads'),
-    cacheDownloadsKey: core.getInput('cache-downloads-key'),
-    cacheEnv: core.getBooleanInput('cache-env'),
-    cacheEnvKey: core.getInput('cache-env-key'),
-    // Not implemented
-    // cacheEnvAlwaysUpdate: core.getBooleanInput('cache-env-always-update')
-    cacheEnvAlwaysUpdate: false
+async function installMicromamba (inputs, extraChannels) {
+  // Setup .condarc
+  touch(PATHS.condarc)
+  let condarcOpts = `
+always_yes: true
+show_channel_urls: true
+channel_priority: strict
+`
+  const channels = inputs.channels + (extraChannels || []).join(', ')
+  if (channels) {
+    condarcOpts += `channels: [${channels}]`
+  }
+  fs.appendFileSync(PATHS.condarc, condarcOpts)
+  core.debug(`Contents of ${PATHS.condarc}:\n${fs.readFileSync(PATHS.condarc)}`)
+
+  // Install micromamba
+  if (!fs.existsSync(PATHS.micromambaBinFolder)) {
+    core.startGroup('Install micromamba ...')
+    const installer = {
+      win: installMicromambaWindows,
+      linux: installMicromambaPosix,
+      osx: installMicromambaPosix
+    }[MAMBA_PLATFORM]
+    const micromambaUrl = MICROMAMBA_PLATFORM_URL + inputs.micromambaVersion
+    await installer(micromambaUrl)
+    core.exportVariable('MAMBA_ROOT_PREFIX', PATHS.micromambaRoot)
+    core.exportVariable('MAMBA_EXE', PATHS.micromambaExe)
+    core.addPath(PATHS.micromambaBinFolder)
+    core.endGroup()
   }
 
-  // Read environment file
-  let envFilePath, envYaml
-  if (inputs.envFile !== 'false') {
-    envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', inputs.envFile)
-    if (!envFilePath.endsWith('.lock')) {
-      envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
-    }
+  touch(PATHS.bashprofile)
+}
+
+async function installEnvironment (inputs, envFilePath, envYaml) {
+  if (!envFilePath && !envYaml.extraSpecs) {
+    // Nothing to install
+    return
   }
 
   // Determine environment name
@@ -280,38 +295,6 @@ async function main () {
       }
     }
   }
-
-  // Setup .condarc
-  touch(PATHS.condarc)
-  let condarcOpts = `
-always_yes: true
-show_channel_urls: true
-channel_priority: strict
-`
-  const channels = inputs.channels + (envYaml?.channels || []).join(', ')
-  if (channels) {
-    condarcOpts += `channels: [${channels}]`
-  }
-  fs.appendFileSync(PATHS.condarc, condarcOpts)
-  core.debug(`Contents of ${PATHS.condarc}:\n${fs.readFileSync(PATHS.condarc)}`)
-
-  // Install micromamba
-  if (!fs.existsSync(PATHS.micromambaBinFolder)) {
-    core.startGroup('Install micromamba ...')
-    const installer = {
-      win: installMicromambaWindows,
-      linux: installMicromambaPosix,
-      osx: installMicromambaPosix
-    }[MAMBA_PLATFORM]
-    const micromambaUrl = MICROMAMBA_PLATFORM_URL + inputs.micromambaVersion
-    await installer(micromambaUrl)
-    core.exportVariable('MAMBA_ROOT_PREFIX', PATHS.micromambaRoot)
-    core.exportVariable('MAMBA_EXE', PATHS.micromambaExe)
-    core.addPath(PATHS.micromambaBinFolder)
-    core.endGroup()
-  }
-
-  touch(PATHS.bashprofile)
 
   // Install env
   if (envFilePath || inputs.extraSpecs) {
@@ -370,6 +353,35 @@ Write-Host "Profile already exists and new content added"
     }
     core.endGroup()
   }
+}
+
+async function main () {
+  const inputs = {
+    micromambaVersion: core.getInput('micromamba-version'),
+    envName: core.getInput('environment-name'),
+    envFile: core.getInput('environment-file'),
+    extraSpecs: getInputAsArray('extra-specs'),
+    channels: core.getInput('channels'),
+    cacheDownloads: core.getBooleanInput('cache-downloads'),
+    cacheDownloadsKey: core.getInput('cache-downloads-key'),
+    cacheEnv: core.getBooleanInput('cache-env'),
+    cacheEnvKey: core.getInput('cache-env-key'),
+    // Not implemented
+    // cacheEnvAlwaysUpdate: core.getBooleanInput('cache-env-always-update')
+    cacheEnvAlwaysUpdate: false
+  }
+
+  // Read environment file
+  let envFilePath, envYaml
+  if (inputs.envFile !== 'false') {
+    envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', inputs.envFile)
+    if (!envFilePath.endsWith('.lock')) {
+      envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
+    }
+  }
+
+  await installMicromamba(inputs, envYaml?.channels)
+  await installEnvironment(inputs, envFilePath, envYaml)
 
   // Show environment info
   core.startGroup('Environment info')

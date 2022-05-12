@@ -16,6 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: install binary only
+        uses: ./
+        with:
+          environment-file: false
+
       - name: install mamba
         uses: ./
 
