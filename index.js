@@ -9,7 +9,6 @@ const yaml = require('js-yaml')
 const cache = require('@actions/cache')
 const core = require('@actions/core')
 const exec = require('@actions/exec').exec
-const io = require('@actions/io')
 
 const MICROMAMBA_BASE_URL = 'https://micro.mamba.pm/api/micromamba'
 const MAMBA_PLATFORM = { darwin: 'osx', linux: 'linux', win32: 'win' }[process.platform]
@@ -114,24 +113,14 @@ function saveCacheOnPost (paths, key, options) {
   core.saveState('postCacheArgs', JSON.stringify([...old, [paths, key, options]]))
 }
 
-async function getDownloadProg () {
-  if (await io.which('wget')) {
-    return 'wget'
-  } else if (await io.which('curl')) {
-    return 'curl'
-  } else {
-    throw Error("Couldn't find neither of 'wget' and 'curl'")
-  }
-}
-
 async function installMicromambaPosix (micromambaUrl) {
+  const posixDownloader = `curl ${micromambaUrl} -Ls --retry 5 --retry-delay 1
+    | tar --strip-components=1 -vxjC ${PATHS.micromambaBinFolder} bin/micromamba`
   const cacheKey = `micromamba-bin ${micromambaUrl} ${today()}`
   const cacheArgs = [PATHS.micromambaBinFolder, cacheKey]
   if (!await tryRestoreCache(...cacheArgs)) {
     await executeBash(`mkdir -p ${PATHS.micromambaBinFolder}`)
-    const downloadProg = await getDownloadProg() === 'wget' ? 'wget -qO- --retry-connrefused --waitretry=10 -t 5' : 'curl -Ls --retry 5 --retry-delay 1'
-    const downloadCmd = `${downloadProg} ${micromambaUrl} | tar -xvjO bin/micromamba > ${PATHS.micromambaExe}`
-    await retry(() => executeBash(downloadCmd))
+    await retry(() => executeBash(posixDownloader))
     saveCacheOnPost(...cacheArgs)
   }
 
