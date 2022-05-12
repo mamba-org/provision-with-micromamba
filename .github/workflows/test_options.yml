@@ -106,3 +106,16 @@ jobs:
           extra-specs: |
             xtensor
           channels: conda-forge,blah
+
+  test_environment_without_name:
+    name: Test environment.yml without name: attribute
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install mamba
+        uses: ./
+        with:
+          environment-file: .github/workflows/resources/environment_without_name.yml
