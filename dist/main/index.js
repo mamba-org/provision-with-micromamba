@@ -227,7 +227,7 @@ async function createOrUpdateEnv (envName, envFilePath, extraSpecs) {
   const selectedExtraSpecs = selectSelectors(extraSpecs)
   core.info(`${action} env ${envName}`)
   let cmd = `micromamba ${action} -n ${envName} --strict-channel-priority -y`
-  if (selectedExtraSpecs) {
+  if (selectedExtraSpecs.length) {
     cmd += ' ' + selectedExtraSpecs.map(e => `"${e}"`).join(' ')
   }
   if (envFilePath) {
@@ -274,23 +274,15 @@ channel_priority: strict
   touch(PATHS.bashprofile)
 }
 
-async function installEnvironment (inputs, envFilePath, envYaml) {
-  core.warning([envFilePath, inputs.extraSpecs, !envFilePath, !inputs.extraSpecs])
-  if (!envFilePath && !inputs.extraSpecs) {
-    // Nothing to install
-    return
-  }
-
-  // Determine environment name
-  let envName
+function determineEnvironmentName (inputs, envFilePath, envYaml) {
   if (envFilePath) {
     // Have environment.yml or .lock file
     if (envYaml) {
       if (inputs.envName) {
-        envName = inputs.envName
+        return inputs.envName
       } else {
         if (envYaml?.name) {
-          envName = envYaml?.name
+          return envYaml?.name
         } else {
           throw Error("Must provide 'environment-name' if environment.yml doesn't provide a 'name' attribute")
         }
@@ -298,7 +290,7 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
     } else {
       // .lock file
       if (inputs.envName) {
-        envName = inputs.envName
+        return inputs.envName
       } else {
         throw Error("Must provide 'environment-name' for .lock files")
       }
@@ -306,69 +298,75 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
   } else {
     // Have extra-specs only
     if (inputs.envName) {
-      envName = inputs.envName
+      return inputs.envName
     } else {
       throw Error("Must provide 'environment-name' for 'environment-file: false'")
     }
   }
+}
 
-  // Install env
-  if (envFilePath || inputs.extraSpecs) {
-    core.startGroup(`Install environment ${envName} from ${envFilePath || ''} ${inputs.extraSpecs || ''}...`)
-    let downloadCacheHit, downloadCacheArgs, envCacheHit, envCacheArgs
+async function installEnvironment (inputs, envFilePath, envYaml) {
+  if (!envFilePath && !inputs.extraSpecs.length) {
+    core.info("Skipping environment install because no 'environment-file' or 'extra-specs' are set")
+    return
+  }
 
-    // Try to load the entire env from cache.
-    if (inputs.cacheEnv) {
-      let key = inputs.cacheEnvKey || `${MAMBA_PLATFORM}-${process.arch} ${today()}`
-      if (envFilePath) {
-        key += ' file: ' + sha256Short(fs.readFileSync(envFilePath))
-      }
-      if (inputs.extraSpecs) {
-        key += ' extra: ' + sha256Short(JSON.stringify(inputs.extraSpecs))
-      }
-      envCacheArgs = [path.join(PATHS.micromambaEnvs, envName), `micromamba-env ${key}`]
-      envCacheHit = await tryRestoreCache(...envCacheArgs)
+  const envName = determineEnvironmentName(inputs, envFilePath, envYaml)
+
+  core.startGroup(`Install environment ${envName} from ${envFilePath || ''} ${inputs.extraSpecs || ''}...`)
+  let downloadCacheHit, downloadCacheArgs, envCacheHit, envCacheArgs
+
+  // Try to load the entire env from cache.
+  if (inputs.cacheEnv) {
+    let key = inputs.cacheEnvKey || `${MAMBA_PLATFORM}-${process.arch} ${today()}`
+    if (envFilePath) {
+      key += ' file: ' + sha256Short(fs.readFileSync(envFilePath))
     }
-
-    if (!envCacheHit || inputs.cacheEnvAlwaysUpdate) {
-      // Try to restore the download cache.
-      if (inputs.cacheDownloads) {
-        const key = inputs.cacheDownloadsKey || `${MAMBA_PLATFORM}-${process.arch} ${today()}`
-        downloadCacheArgs = [PATHS.micromambaPkgs, `micromamba-pkgs ${key}`]
-        downloadCacheHit = await tryRestoreCache(...downloadCacheArgs)
-      }
-      await createOrUpdateEnv(envName, envFilePath, inputs.extraSpecs)
+    if (inputs.extraSpecs.length) {
+      key += ' extra: ' + sha256Short(JSON.stringify(inputs.extraSpecs))
     }
+    envCacheArgs = [path.join(PATHS.micromambaEnvs, envName), `micromamba-env ${key}`]
+    envCacheHit = await tryRestoreCache(...envCacheArgs)
+  }
 
-    // Add micromamba activate to profile
-    const autoactivateCmd = `micromamba activate ${envName};`
-    if (MAMBA_PLATFORM === 'win') {
-      const powershellAutoActivateEnv = `if (!(Test-Path $profile))
+  if (!envCacheHit || inputs.cacheEnvAlwaysUpdate) {
+    // Try to restore the download cache.
+    if (inputs.cacheDownloads) {
+      const key = inputs.cacheDownloadsKey || `${MAMBA_PLATFORM}-${process.arch} ${today()}`
+      downloadCacheArgs = [PATHS.micromambaPkgs, `micromamba-pkgs ${key}`]
+      downloadCacheHit = await tryRestoreCache(...downloadCacheArgs)
+    }
+    await createOrUpdateEnv(envName, envFilePath, inputs.extraSpecs)
+  }
+
+  // Add micromamba activate to profile
+  const autoactivateCmd = `micromamba activate ${envName};`
+  if (MAMBA_PLATFORM === 'win') {
+    const powershellAutoActivateEnv = `if (!(Test-Path $profile))
 {
- New-Item -path $profile -type "file" -value "${autoactivateCmd}"
- Write-Host "Created new profile and content added"
+New-Item -path $profile -type "file" -value "${autoactivateCmd}"
+Write-Host "Created new profile and content added"
 }
 else
 {
 Add-Content -path $profile -value "${autoactivateCmd}"
 Write-Host "Profile already exists and new content added"
 }`
-      await executePwsh(powershellAutoActivateEnv)
-    } else {
-      fs.appendFileSync(PATHS.bashprofile, '\nset -eo pipefail')
-    }
-    fs.appendFileSync(PATHS.bashprofile, '\n' + autoactivateCmd)
-    core.info(`Contents of ${PATHS.bashprofile}:\n${fs.readFileSync(PATHS.bashprofile)}`)
-
-    // Save cache on workflow success
-    if (inputs.cacheDownloads && !downloadCacheHit) {
-      saveCacheOnPost(...downloadCacheArgs)
-    }
-    if (inputs.cacheEnv && !envCacheHit) {
-      saveCacheOnPost(...envCacheArgs)
-    }
-    core.endGroup()
+    await executePwsh(powershellAutoActivateEnv)
+  } else {
+    fs.appendFileSync(PATHS.bashprofile, '\nset -eo pipefail')
   }
+  fs.appendFileSync(PATHS.bashprofile, '\n' + autoactivateCmd)
+  core.info(`Contents of ${PATHS.bashprofile}:\n${fs.readFileSync(PATHS.bashprofile)}`)
+
+  // Save cache on workflow success
+  if (inputs.cacheDownloads && !downloadCacheHit) {
+    saveCacheOnPost(...downloadCacheArgs)
+  }
+  if (inputs.cacheEnv && !envCacheHit) {
+    saveCacheOnPost(...envCacheArgs)
+  }
+  core.endGroup()
 }
 
 async function main () {
@@ -389,7 +387,6 @@ async function main () {
 
   // Read environment file
   let envFilePath, envYaml
-  core.warning([typeof inputs.envFile, inputs.envFile])
   if (inputs.envFile !== 'false') {
     envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', inputs.envFile)
     if (!envFilePath.endsWith('.lock')) {
