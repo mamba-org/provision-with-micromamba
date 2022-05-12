@@ -377,6 +377,7 @@ async function main () {
 
   // Read environment file
   let envFilePath, envYaml
+  core.warning([typeof inputs.envFile, inputs.envFile])
   if (inputs.envFile !== 'false') {
     envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', inputs.envFile)
     if (!envFilePath.endsWith('.lock')) {
