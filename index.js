@@ -263,7 +263,7 @@ channel_priority: strict
 }
 
 async function installEnvironment (inputs, envFilePath, envYaml) {
-  if (!envFilePath && !envYaml.extraSpecs) {
+  if (!envFilePath && !inputs.extraSpecs) {
     // Nothing to install
     return
   }
