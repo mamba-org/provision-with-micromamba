@@ -120,6 +120,9 @@ jobs:
         with:
           environment-file: .github/workflows/resources/environment_without_name.yml
 
+      - run: micromamba list | grep -q xtensor
+        shell: bash
+
   test_extra_specs:
     name: Test extra-specs
     runs-on: ${{ matrix.os }}
