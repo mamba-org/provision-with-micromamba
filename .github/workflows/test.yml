@@ -29,18 +29,22 @@ jobs:
           python -c "import numpy"
           echo "MAMBA_EXE=$Env:MAMBA_EXE"
           python test/test_path.py
+          python -c "import os; env = os.path.basename(os.environ['CONDA_PREFIX']); assert env == 'testenv'"
         if: runner.os == 'Windows'
 
       - name: run python in cmd.exe
         shell: cmd /C call {0}
         run: |
           where micromamba
-          micromamba info
+          :: For some reason running the "micromamba" binary here breaks the action?!
+          :: See https://github.com/mamba-org/provision-with-micromamba/pull/56
+          :: micromamba info
           which python
           python -VV
           python -c "import numpy"
           echo "MAMBA_EXE=%MAMBA_EXE%"
           python test/test_path.py
+          python -c "import os; env = os.path.basename(os.environ['CONDA_PREFIX']); assert env == 'testenv'" || exit /b
         if: runner.os == 'Windows'
 
       - name: run python in bash
@@ -53,6 +57,7 @@ jobs:
           python -c "import numpy"
           echo "MAMBA_EXE=$MAMBA_EXE"
           python test/test_path.py
+          python -c "import os; env = os.path.basename(os.environ['CONDA_PREFIX']); assert env == 'testenv'"
 
       # - name: run python in zsh
       #   shell: zsh -l {0}
