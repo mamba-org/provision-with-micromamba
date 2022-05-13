@@ -14,10 +14,6 @@ jobs:
       matrix:
         os: [windows-latest]
 
-    defaults:
-      run:
-        shell: cmd /C call {0}
-
     steps:
       - uses: actions/checkout@v2
 
@@ -32,7 +28,10 @@ jobs:
           python -VV
           python -c "import numpy"
           micromamba --help
+          micromamba info
+        shell: cmd /C call {0}
 
       - name: test environment name
         run: |
           python -c "import os; env = os.path.basename(os.environ['CONDA_PREFIX']); assert env == 'myenv'"
+        shell: cmd /C call {0}
