@@ -16,6 +16,6 @@ jobs:
         with:
           environment-file: environment.yml
           #environment-name: test_env
-          #channels: conda-forge
+          channels: conda-forge
           extra-specs: |
             python=3.10
