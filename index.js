@@ -204,7 +204,10 @@ always_yes: true
 show_channel_urls: true
 channel_priority: strict
 `
-  const channels = inputs.channels + (extraChannels || []).join(', ')
+  const channels =
+    inputs.channels && extraChannels
+      ? inputs.channels + ',' + extraChannels.join(', ')
+      : inputs.channels || extraChannels?.join(', ')
   if (channels) {
     condarcOpts += `channels: [${channels}]`
   }
