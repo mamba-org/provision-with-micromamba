@@ -11,10 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Conda environment with Micromamba
-      uses: mamba-org/provision-with-micromamba@main
-      with:
-        environment-file: environment.yml
-        environment-name: test_env
-        channels: conda-forge
-        extra-specs: |
-          python=3.10
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: environment.yml
+          environment-name: test_env
+          channels: conda-forge
+          extra-specs: |
+            python=3.10
