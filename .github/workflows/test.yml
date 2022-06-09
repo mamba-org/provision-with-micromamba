@@ -14,8 +14,8 @@ jobs:
         #uses: mamba-org/provision-with-micromamba@main
         uses: ./
         with:
-          environment-file: environment.yml
-          #environment-name: test_env
+          environment-file: false
+          environment-name: test_env
           channels: conda-forge
           extra-specs: |
             python=3.10
