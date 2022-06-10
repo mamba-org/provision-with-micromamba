@@ -27,10 +27,15 @@ inputs:
     required: true
     default: latest
   extra-specs:
-    description: >-
+    description: |
       Additional specifications (packages) to install.
       Pretty useful when using matrix builds to pin versions of a test/run dependency.
-      For multiple packages, use multiline syntax (see examples).
+      For multiple packages, use multiline syntax:
+      ```yaml
+      extra-specs: |
+        python=3.10
+        xtensor
+      ```
       Note that selectors
       (e.g. `sel(linux): my-linux-package`, `sel(osx): my-osx-package`, `sel(win): my-win-package`)
       are available.

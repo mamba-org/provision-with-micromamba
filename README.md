@@ -31,7 +31,18 @@ Default value: "latest"
 
 ### `extra-specs`
 
-Additional specifications (packages) to install. Pretty useful when using matrix builds to pin versions of a test/run dependency. For multiple packages, use multiline syntax (see examples). Note that selectors (e.g. `sel(linux): my-linux-package`, `sel(osx): my-osx-package`, `sel(win): my-win-package`) are available.
+Additional specifications (packages) to install.
+Pretty useful when using matrix builds to pin versions of a test/run dependency.
+For multiple packages, use multiline syntax:
+```yaml
+extra-specs: |
+  python=3.10
+  xtensor
+```
+Note that selectors
+(e.g. `sel(linux): my-linux-package`, `sel(osx): my-osx-package`, `sel(win): my-win-package`)
+are available.
+
 
 ### `channels`
 
