@@ -8,8 +8,9 @@ function generateInputsDocs (inputs) {
   let markdown = ''
   for (const inputName in inputs) {
     const input = inputs[inputName]
-    const optionalStr = input.required ? '' : '(Optional) '
-    markdown += `\n### \`${inputName}\`\n\n${optionalStr}${input.description}\n`
+    const optionalStr = input.required ? 'Required' : 'Optional'
+    const defaultStr = input.default ? `, default "${input.default}"` : ''
+    markdown += `\n### \`${inputName}\`\n\n(${optionalStr}${defaultStr}) ${input.description}\n`
   }
   return markdown
 }

@@ -10,12 +10,10 @@ const cache = require('@actions/cache')
 const core = require('@actions/core')
 const exec = require('@actions/exec').exec
 
-const MICROMAMBA_BASE_URL = 'https://micro.mamba.pm/api/micromamba'
 const MAMBA_PLATFORM = { darwin: 'osx', linux: 'linux', win32: 'win' }[process.platform]
 if (!MAMBA_PLATFORM) {
   throw Error(`Platform ${process.platform} not supported.`)
 }
-const MICROMAMBA_PLATFORM_URL = `${MICROMAMBA_BASE_URL}/${MAMBA_PLATFORM}-64/`
 const PATHS = {
   condarc: path.join(os.homedir(), '.condarc'),
   bashprofile: path.join(os.homedir(), '.bash_profile'),
@@ -202,20 +200,31 @@ if(-not($success)){exit}`
 
 async function installMicromamba (inputs, extraChannels) {
   // Setup .condarc
-  touch(PATHS.condarc)
-  let condarcOpts = `
-always_yes: true
-show_channel_urls: true
-channel_priority: strict
-`
+  if (inputs.condaRcFile) {
+    fs.copyFileSync(inputs.condaRcFile, PATHS.condarc)
+  } else {
+    touch(PATHS.condarc)
+  }
+  let condarcOpts = {
+    always_yes: true,
+    show_channel_urls: true,
+    channel_priority: inputs.channelPriority
+  }
+  if (inputs.channelAlias) {
+    condarcOpts.channel_alias = inputs.channelAlias
+  }
   const channels =
     inputs.channels && extraChannels
       ? inputs.channels + ',' + extraChannels.join(', ')
       : inputs.channels || extraChannels?.join(', ')
   if (channels) {
-    condarcOpts += `channels: [${channels}]`
+    condarcOpts.channels = channels.split(',').map(s => s.trim())
   }
-  fs.appendFileSync(PATHS.condarc, condarcOpts)
+  const moreOpts = yaml.safeLoad(inputs.condaRcOptions)
+  if (moreOpts) {
+    condarcOpts = { ...condarcOpts, ...moreOpts }
+  }
+  fs.appendFileSync(PATHS.condarc, yaml.safeDump(condarcOpts))
   core.debug(`Contents of ${PATHS.condarc}:\n${fs.readFileSync(PATHS.condarc)}`)
 
   // Install micromamba
@@ -226,7 +235,7 @@ channel_priority: strict
       linux: installMicromambaPosix,
       osx: installMicromambaPosix
     }[MAMBA_PLATFORM]
-    const micromambaUrl = MICROMAMBA_PLATFORM_URL + inputs.micromambaVersion
+    const micromambaUrl = `${inputs.installerUrl}/${MAMBA_PLATFORM}-64/${inputs.micromambaVersion}`
     await installer(micromambaUrl, inputs.logLevel)
     core.exportVariable('MAMBA_ROOT_PREFIX', PATHS.micromambaRoot)
     core.exportVariable('MAMBA_EXE', PATHS.micromambaExe)
@@ -375,11 +384,16 @@ Write-Host "Profile already exists and new content added"
 
 async function main () {
   const inputs = {
-    micromambaVersion: core.getInput('micromamba-version'),
-    envName: core.getInput('environment-name'),
+    // Basic options
     envFile: core.getInput('environment-file'),
+    envName: core.getInput('environment-name'),
+    micromambaVersion: core.getInput('micromamba-version'),
     extraSpecs: getInputAsArray('extra-specs'),
     channels: core.getInput('channels'),
+    condaRcFile: core.getInput('condarc-file'),
+    channelPriority: core.getInput('channel-priority'),
+
+    // Caching options
     cacheDownloads: core.getBooleanInput('cache-downloads'),
     cacheDownloadsKey: core.getInput('cache-downloads-key'),
     cacheEnv: core.getBooleanInput('cache-env'),
@@ -387,7 +401,11 @@ async function main () {
     // Not implemented
     // cacheEnvAlwaysUpdate: core.getBooleanInput('cache-env-always-update')
     cacheEnvAlwaysUpdate: false,
-    logLevel: core.getInput('log-level')
+
+    // Advanced options
+    logLevel: core.getInput('log-level'),
+    condaRcOptions: core.getInput('condarc-options'),
+    installerUrl: core.getInput('installer-url')
   }
 
   // Read environment file

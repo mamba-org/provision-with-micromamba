@@ -5,6 +5,10 @@ on:
       - main
   pull_request: null
 
+defaults:
+  run:
+    shell: bash -el {0}
+
 jobs:
   test_enviroment_file_and_enviroment_name:
     name: Test environment-file, environment-name, extra-specs, log-level
@@ -43,7 +47,6 @@ jobs:
         if: runner.os == 'Windows'
 
       - name: run python in bash
-        shell: bash -l {0}
         run: |
           which micromamba
           micromamba info
@@ -58,7 +61,6 @@ jobs:
         if: runner.os == 'Windows'
 
       - name: test environment name in bash
-        shell: bash -l {0}
         run: |
           python -c "import os; env = os.environ['CONDA_PREFIX'].split('/')[-1]; assert env == 'myenv'"
         if: runner.os != 'Windows'
@@ -71,7 +73,6 @@ jobs:
         if: runner.os == 'Windows'
 
       - name: check python version in bash
-        shell: bash -l {0}
         run: |
           python --version
           python -c "import platform; assert platform.python_version() == '3.8.8'"
@@ -85,7 +86,6 @@ jobs:
         if: runner.os == 'Windows'
 
       - name: check pytest version in bash
-        shell: bash -l {0}
         run: |
           pytest --version
           python -c "import pytest; assert pytest.__version__.startswith(str(${{ matrix.pytest }}))"
@@ -135,10 +135,6 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
 
-    defaults:
-      run:
-        shell: bash -l {0}
-
     steps:
       - uses: actions/checkout@v2
 
@@ -180,3 +176,78 @@ jobs:
           if micromamba list | grep -q xtensor; then exit 1; fi
           if micromamba list | grep -q cmake; then exit 1; fi
           if ! micromamba list | grep -q ninja; then exit 1; fi
+
+  test_channel_priority:
+    name: Test channel-priority
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install mamba
+        uses: ./
+        with:
+          channel-priority: flexible
+          environment-file: environment.yml
+
+      - name: test
+        run: |
+          cat ~/.condarc
+          grep "channel_priority: flexible" ~/.condarc
+
+  test_condarc_file:
+    name: Test condarc-file
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: create .condarc
+        run: |
+          echo "# sentinel" > mycondarc
+
+      - name: install mamba
+        uses: ./
+        with:
+          environment-file: environment.yml
+          condarc-file: mycondarc
+
+      - name: test
+        run: |
+          cat ~/.condarc
+          grep "# sentinel" ~/.condarc
+
+  test_condarc_options:
+    name: Test condarc-options
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install mamba
+        uses: ./
+        with:
+          environment-file: environment.yml
+          condarc-options: |
+            verify_ssl: false
+            proxy_servers:
+              xxx: https://example.com
+            create_default_packages:
+              - pip >1
+
+      - name: test
+        run: |
+          cat ~/.condarc
+          grep "verify_ssl: false" ~/.condarc
+          grep "xxx: " ~/.condarc
+          grep "  - pip >1" ~/.condarc

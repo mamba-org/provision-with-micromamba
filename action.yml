@@ -4,21 +4,25 @@ branding:
   icon: "chevrons-right"
   color: "green"
 inputs:
+  # Basic options
   environment-file:
     description: >-
       The environment.yml or .lock file for the conda environment.
       If 'false', no enviroment will be created (only Micromamba will be installed)
       and you should provide 'channels'.
+      See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file)
+      for more information.
     required: true
     default: environment.yml
   environment-name:
     description: >-
-      The name of the conda environment (defaults to name from the environment.yml file).
+      The name of the conda environment. Defaults to name from the environment.yml file.
       Required if 'environment-file' is a '.lock' file or 'false'.
     required: false
   micromamba-version:
     description: >-
-      Version of micromamba to use, eg. '0.20' (default 'latest').
+      Version of micromamba to use, eg. '0.20'.
+      See https://github.com/mamba-org/mamba/releases/ for a list of releases.
     required: false
     default: "latest"
   extra-specs:
@@ -36,6 +40,21 @@ inputs:
       Comma separated list of channels to use in order of priority (eg., `conda-forge,my-private-channel`)
     required: false
     default: ""
+  condarc-file:
+    description: >-
+      Path to a `.condarc` file to use. See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/)
+      for more information.
+    required: false
+    default: ""
+  channel-priority:
+    description: >-
+      Channel priority to use. One of "strict", "flexible", and "disabled".
+      See https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html#strict-channel-priority
+      for more information.
+    required: false
+    default: strict
+
+  # Caching options
   cache-downloads:
     description: >-
       If 'true', cache downloaded packages across calls to the provision-with-micromamba action.
@@ -69,6 +88,139 @@ inputs:
       Micromamba log level to use.
       One of "trace", "debug", "info", "warning", "error", "critical", "off".
     default: info
+
+  # Advanced options
+  installer-url:
+    description: >-
+      Base URL to fetch Micromamba from. Files will be downloaded from
+      `<base url>/<platform>/<version>`, eg. https://micro.mamba.pm/api/micromamba/linux-64/latest.
+    required: false
+    default: https://micro.mamba.pm/api/micromamba
+  condarc-options:
+    required: false
+    description: |
+      More options to append to `.condarc`. Must be a string of valid YAML:
+
+      ```yaml
+      condarc-options: |
+        proxy_servers:
+          http: ...
+      ```
+    default: ""
+
+  # setup-miniconda options that are not (yet) supported:
+  #
+  # activate-environment:
+  #   description:
+  #     "Environment name (or path) to activate on all shells. Default is `test`
+  #     which will be created in `$CONDA/envs/test`. If an empty string is used,
+  #     no environment is activated by default (For `base` activation see the
+  #     `auto-activate-base` option). If the environment does not exist, it will
+  #     be created and activated. If `environment-file` is used and you want that
+  #     to be the environment used, you need to explicitely provide the name of
+  #     that environment on `activate-environment`. If using sh/bash/cmd.exe
+  #     shells please read the IMPORTANT! section on the README.md! to properly
+  #     activate conda environments on these shells."
+  #   required: false
+  #   default: "test"
+  # channel-alias:
+  #   description:
+  #     "Conda configuration. Whenever you use the -c or --channel flag to give
+  #     conda a channel name that is not a URL, conda prepends the channel_alias
+  #     to the name that it was given. The default channel_alias is
+  #     https://conda.anaconda.org. See
+  #     https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html#set-a-channel-alias-channel-alias
+  #     for more information."
+  #   required: false
+  #   default: ""
+  # python-version:
+  #   description:
+  #     'Exact version of a Python version to use on "activate-environment". If
+  #     provided, this will be installed before the "environment-file". See
+  #     https://anaconda.org/anaconda/python for available "python" versions.'
+  #   required: false
+  #   default: ""
+  # add-anaconda-token:
+  #   description:
+  #     'Conda configuration. When the channel alias is Anaconda.org or an
+  #     Anaconda Server GUI, you can set the system configuration so that users
+  #     automatically see private packages. Anaconda.org was formerly known as
+  #     binstar.org. This uses the Anaconda command-line client, which you can
+  #     install with conda install anaconda-client, to automatically add the token
+  #     to the channel URLs. The default is "true". See
+  #     https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html#add-anaconda-org-token-to-automatically-see-private-packages-add-anaconda-token
+  #     for more information.'
+  #   required: false
+  #   default: ""
+  # add-pip-as-python-dependency:
+  #   description:
+  #     'Conda configuration. Add pip, wheel, and setuptools as dependencies of
+  #     Python. This ensures that pip, wheel, and setuptools are always installed
+  #     any time Python is installed. The default is "true". See
+  #     https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html#add-pip-as-python-dependency-add-pip-as-python-dependency
+  #     for more information.'
+  #   required: false
+  #   default: ""
+  # allow-softlinks:
+  #   description:
+  #     'Conda configuration. When allow_softlinks is "true", conda uses
+  #     hard-links when possible and soft-links---symlinks---when hard-links are
+  #     not possible, such as when installing on a different file system than the
+  #     one that the package cache is on. When allow_softlinks is "false", conda
+  #     still uses hard-links when possible, but when it is not possible, conda
+  #     copies files. Individual packages can override this option, specifying
+  #     that certain files should never be soft-linked. The default is "true". See
+  #     https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html#disallow-soft-linking-allow-softlinks
+  #     for more information.'
+  #   required: false
+  #   default: ""
+  # auto-activate-base:
+  #   description:
+  #     'Conda configuration. If you’d prefer that conda’s base environment not be
+  #     activated on startup, set the to "false". Default is "true". This setting
+  #     always overrides if set to "true" or "false". If you want to use the
+  #     "condarc-file" setting pass and empty string. See
+  #     https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/
+  #     for more information.'
+  #   required: false
+  #   default: "true"
+  # use-only-tar-bz2:
+  #   description:
+  #     'Conda configuration. Conda 4.7 introduced a new .conda package file
+  #     format. .conda is a more compact and faster alternative to .tar.bz2
+  #     packages. It is thus the preferred file format to use where available.
+  #     Nevertheless, it is possible to force conda to only download .tar.bz2
+  #     packages by setting the use_only_tar_bz2 boolean to "true". The default is
+  #     "false". See
+  #     https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html#force-conda-to-download-only-tar-bz2-packages-use-only-tar-bz2
+  #     for more information.'
+  #   required: false
+  #   default: ""
+  # remove-profiles:
+  #   description:
+  #     'Advanced. Prior to runnning "conda init" all shell profiles will be
+  #     removed from the runner. Default is "true".'
+  #   required: false
+  #   default: "true"
+  # show-channel-urls:
+  #   description:
+  #     'Conda configuration. Show channel URLs when displaying what is going to
+  #     be downloaded and in conda list. The default is "false". See
+  #     https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html#show-channel-urls-show-channel-urls
+  #     for more information.'
+  #   required: false
+  #   default: ""
+  # architecture:
+  #   description:
+  #     'Architecture of Miniconda that should be installed. Available options on
+  #     GitHub-hosted runners are "x86" and "x64". Default is "x64".'
+  #   required: false
+  #   default: "x64"
+  # clean-patched-environment-file:
+  #   description:
+  #     "Whether a patched environment-file (if created) should be cleaned"
+  #   required: false
+  #   default: "true"
 
 runs:
   using: "node16"

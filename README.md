@@ -15,15 +15,15 @@ They are preinstalled in the default GitHub Actions environments.
 
 ### `environment-file`
 
-The environment.yml or .lock file for the conda environment. If 'false', no enviroment will be created (only Micromamba will be installed) and you should provide 'channels'.
+(Required, default "environment.yml") The environment.yml or .lock file for the conda environment. If 'false', no enviroment will be created (only Micromamba will be installed) and you should provide 'channels'. See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file) for more information.
 
 ### `environment-name`
 
-(Optional) The name of the conda environment (defaults to name from the environment.yml file). Required if 'environment-file' is a '.lock' file or 'false'.
+(Optional) The name of the conda environment. Defaults to name from the environment.yml file. Required if 'environment-file' is a '.lock' file or 'false'.
 
 ### `micromamba-version`
 
-(Optional) Version of micromamba to use, eg. '0.20' (default 'latest').
+(Optional, default "latest") Version of micromamba to use, eg. '0.20'. See https://github.com/mamba-org/mamba/releases/ for a list of releases.
 
 ### `extra-specs`
 
@@ -32,6 +32,14 @@ The environment.yml or .lock file for the conda environment. If 'false', no envi
 ### `channels`
 
 (Optional) Comma separated list of channels to use in order of priority (eg., `conda-forge,my-private-channel`)
+
+### `condarc-file`
+
+(Optional) Path to a `.condarc` file to use. See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/) for more information.
+
+### `channel-priority`
+
+(Optional, default "strict") Channel priority to use. One of "strict", "flexible", and "disabled". See https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html#strict-channel-priority for more information.
 
 ### `cache-downloads`
 
@@ -51,7 +59,22 @@ The environment.yml or .lock file for the conda environment. If 'false', no envi
 
 ### `log-level`
 
-(Optional) Micromamba log level to use. One of "trace", "debug", "info", "warning", "error", "critical", "off".
+(Optional, default "info") Micromamba log level to use. One of "trace", "debug", "info", "warning", "error", "critical", "off".
+
+### `installer-url`
+
+(Optional, default "https://micro.mamba.pm/api/micromamba") Base URL to fetch Micromamba from. Files will be downloaded from `<base url>/<platform>/<version>`, eg. https://micro.mamba.pm/api/micromamba/linux-64/latest.
+
+### `condarc-options`
+
+(Optional) More options to append to `.condarc`. Must be a string of valid YAML:
+
+```yaml
+condarc-options: |
+  proxy_servers:
+    http: ...
+```
+
 
 <!-- end generated -->
 
