@@ -95,13 +95,15 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      matrix:
+        environment-file: [false, environment.yml]
     steps:
       - uses: actions/checkout@v2
 
       - name: install mamba
         uses: ./
         with:
-          environment-file: false
+          environment-file: ${{ matrix.environment-file }}
           environment-name: test-channels
           extra-specs: |
             xtensor
