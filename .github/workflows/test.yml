@@ -141,7 +141,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Corrupt channel name in environemnt.yml
+      - name: Corrupt channel name in enviroment.yml
         shell: bash
         run: |
           e="$(cat environment.yml)"
@@ -158,4 +158,4 @@ jobs:
       - name: test failure
         shell: bash
         run: exit 1
-        if: sucess()
+        if: success()
