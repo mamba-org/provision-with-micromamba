@@ -130,3 +130,32 @@ jobs:
           python -c "import numpy"
           echo "MAMBA_EXE=$MAMBA_EXE"
           python test/test_path.py
+
+  test_failure:
+    name: test failure
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Corrupt channel name in environemnt.yml
+        shell: bash
+        run: |
+          e="$(cat environment.yml)"
+          echo "$e" | sed -i s/conda-forge/brokenchannel/g > environment.yml
+
+      - name: install mamba
+        uses: ./
+
+      - name: test failure
+        shell: bash
+        run: exit 0
+        if: failure()
+
+      - name: test failure
+        shell: bash
+        run: exit 1
+        if: sucess()
