@@ -269,7 +269,7 @@ async function createOrUpdateEnv (envName, envFilePath, extraSpecs) {
   const action = fs.existsSync(envFolder) ? 'update' : 'create'
   const selectedExtraSpecs = selectSelectors(extraSpecs)
   core.info(`${action} env ${envName}`)
-  let cmd = `micromamba ${action} -n ${envName} --strict-channel-priority -y`
+  let cmd = `micromamba ${action} -n ${envName} --strict-channel-priority -y --log-level trace`
   if (selectedExtraSpecs.length) {
     cmd += ' ' + selectedExtraSpecs.map(e => `"${e}"`).join(' ')
   }
