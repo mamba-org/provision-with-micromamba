@@ -149,6 +149,7 @@ jobs:
 
       - name: install mamba
         uses: ./
+        continue-on-error: true
 
       - name: test failure
         shell: bash
