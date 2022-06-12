@@ -145,7 +145,7 @@ jobs:
         shell: bash
         run: |
           e="$(cat environment.yml)"
-          echo "$e" | sed -i s/conda-forge/brokenchannel/g > environment.yml
+          echo "$e" | sed s/conda-forge/brokenchannel/g > environment.yml
 
       - name: install mamba
         uses: ./
