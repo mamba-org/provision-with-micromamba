@@ -64,7 +64,7 @@ function executeBash (command) {
 }
 
 function executePwsh (command) {
-  return executeShell('powershell', '-command', command)
+  return executeShell('powershell', '-command', `${command}; exit $LASTEXITCODE`)
 }
 
 function sha256 (s) {
