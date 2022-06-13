@@ -84,13 +84,13 @@ inputs:
   #     to make sure your environment is always up-to-date.
   #   required: true
   #   default: false
+
+  # Advanced options
   log-level:
     description: >-
       Micromamba log level to use.
       One of "trace", "debug", "info", "warning", "error", "critical", "off".
     default: info
-
-  # Advanced options
   installer-url:
     description: >-
       Base URL to fetch Micromamba from. Files will be downloaded from
