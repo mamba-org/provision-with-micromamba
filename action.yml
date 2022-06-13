@@ -64,6 +64,11 @@ inputs:
   #     If 'true', run 'micromamba update' even if the environment was restored from cache
   #     to make sure your environment is always up-to-date.
   #   default: false
+  log-level:
+    description: >-
+      Micromamba log level to use.
+      One of "trace", "debug", "info", "warning", "error", "critical", "off".
+    default: info
 
 runs:
   using: "node16"
