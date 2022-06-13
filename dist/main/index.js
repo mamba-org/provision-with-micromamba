@@ -54,9 +54,7 @@ function getInputAsArray (name) {
 async function executeShell (...command) {
   try {
     await exec(command[0], command.slice(1))
-    core.warning(`executed ${command}`)
   } catch (error) {
-    core.warning(`error during ${command}: ${error}`)
     throw Error(`Failed to execute ${JSON.stringify(command)}`)
   }
 }
