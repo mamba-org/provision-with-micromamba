@@ -49,6 +49,10 @@ The environment.yml or .lock file for the conda environment. If 'false', no envi
 
 (Optional) Custom environment cache key used with 'cache-env: true'. With the default environment cache key, separate caches will be created for each operating system (eg., Linux) and platform (eg., x64) and day (eg., 2022-01-31), and the cache will be invalidated whenever the contents of 'environment-file' or 'extra-specs' change.
 
+### `log-level`
+
+(Optional) Micromamba log level to use. One of "trace", "debug", "info", "warning", "error", "critical", "off".
+
 <!-- end generated -->
 
 ## Example usage

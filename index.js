@@ -42,7 +42,9 @@ function getInputAsArray (name) {
 async function executeShell (...command) {
   try {
     await exec(command[0], command.slice(1))
+    core.warning(`executed ${command}`)
   } catch (error) {
+    core.warning(`error during ${command}: ${error}`)
     throw Error(`Failed to execute ${JSON.stringify(command)}`)
   }
 }
@@ -53,6 +55,10 @@ function executeBash (command) {
 
 function executePwsh (command) {
   return executeShell('powershell', '-command', `${command}; exit $LASTEXITCODE`)
+}
+
+function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
+  return `${micromambaExe} ${command}` + (logLevel ? ` --log-level ${logLevel}` : '')
 }
 
 function sha256 (s) {
@@ -117,7 +123,7 @@ async function retry (callback, backoffTimes = [2000, 5000, 10000]) {
   }
 }
 
-async function installMicromambaPosix (micromambaUrl) {
+async function installMicromambaPosix (micromambaUrl, logLevel) {
   const posixDownloader = `curl ${micromambaUrl} -Ls --retry 5 --retry-delay 1 \
     | tar --strip-components=1 -vxjC ${PATHS.micromambaBinFolder} bin/micromamba`
   const cacheKey = `micromamba-bin ${micromambaUrl} ${today()}`
@@ -131,10 +137,10 @@ async function installMicromambaPosix (micromambaUrl) {
   await executeBash(`chmod u+x ${PATHS.micromambaExe}`)
   if (MAMBA_PLATFORM === 'osx') {
     // macos
-    await executeBash(`${PATHS.micromambaExe} shell init -s bash -p ~/micromamba -y`)
+    await executeBash(micromambaCmd('shell init -s bash -p ~/micromamba -y', logLevel, PATHS.micromambaExe))
     // TODO need to fix a check in micromamba so that this works
     // https://github.com/mamba-org/mamba/issues/925
-    // await executeBash(`${micromambaExe} shell init -s zsh -p ~/micromamba -y`)
+    // await executeBash(micromambaCmd('shell init -s zsh -p ~/micromamba -y', logLevel, PATHS.micromambaExe))
   } else {
     // linux
     // on linux we move the bashrc to a backup and then restore
@@ -145,8 +151,8 @@ async function installMicromambaPosix (micromambaUrl) {
     }
     touch(PATHS.bashrc)
     try {
-      await executeBash(`${PATHS.micromambaExe} shell init -s bash -p ~/micromamba -y`)
-      await executeBash(`${PATHS.micromambaExe} shell init -s zsh -p ~/micromamba -y`)
+      await executeBash(micromambaCmd('shell init -s bash -p ~/micromamba -y', logLevel, PATHS.micromambaExe))
+      await executeBash(micromambaCmd('shell init -s zsh -p ~/micromamba -y', logLevel, PATHS.micromambaExe))
       fs.appendFileSync(PATHS.bashprofile, '\n' + fs.readFileSync(PATHS.bashrc, 'utf8'), 'utf8')
       if (haveBashrcBackup) {
         fs.renameSync(PATHS.bashrcBak, PATHS.bashrc)
@@ -160,7 +166,7 @@ async function installMicromambaPosix (micromambaUrl) {
   }
 }
 
-async function installMicromambaWindows (micromambaUrl) {
+async function installMicromambaWindows (micromambaUrl, logLevel) {
   const powershellDownloader = `$count = 0
 do{
     try
@@ -188,12 +194,12 @@ if(-not($success)){exit}`
     saveCacheOnPost(...cacheArgs)
   }
 
-  await executePwsh(`${PATHS.micromambaExe} shell init -s powershell -p $HOME\\micromamba`)
+  await executePwsh(micromambaCmd('shell init -s powershell -p $HOME\\micromamba', logLevel, PATHS.micromambaExe))
   await executePwsh(
     '$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
-    `${PATHS.micromambaExe} shell init -s bash -p ~\\micromamba -y`
+    micromambaCmd('shell init -s bash -p ~\\micromamba -y', logLevel, PATHS.micromambaExe)
   )
-  await executePwsh(`${PATHS.micromambaExe} shell init -s cmd.exe -p ~\\micromamba -y`)
+  await executePwsh(micromambaCmd('shell init -s cmd.exe -p ~\\micromamba -y', logLevel, PATHS.micromambaExe))
 }
 
 async function installMicromamba (inputs, extraChannels) {
@@ -223,7 +229,7 @@ channel_priority: strict
       osx: installMicromambaPosix
     }[MAMBA_PLATFORM]
     const micromambaUrl = MICROMAMBA_PLATFORM_URL + inputs.micromambaVersion
-    await installer(micromambaUrl)
+    await installer(micromambaUrl, inputs.logLevel)
     core.exportVariable('MAMBA_ROOT_PREFIX', PATHS.micromambaRoot)
     core.exportVariable('MAMBA_EXE', PATHS.micromambaExe)
     core.addPath(PATHS.micromambaBinFolder)
@@ -252,12 +258,12 @@ function selectSelectors (extraSpecs) {
   return ret
 }
 
-async function createOrUpdateEnv (envName, envFilePath, extraSpecs) {
+async function createOrUpdateEnv (envName, envFilePath, extraSpecs, logLevel) {
   const envFolder = path.join(PATHS.micromambaEnvs, envName)
   const action = fs.existsSync(envFolder) ? 'update' : 'create'
   const selectedExtraSpecs = selectSelectors(extraSpecs)
   core.info(`${action} env ${envName}`)
-  let cmd = `micromamba ${action} -n ${envName} --strict-channel-priority -y`
+  let cmd = micromambaCmd(`${action} -n ${envName} --strict-channel-priority -y`, logLevel)
   if (selectedExtraSpecs.length) {
     cmd += ' ' + selectedExtraSpecs.map(e => `"${e}"`).join(' ')
   }
@@ -334,7 +340,7 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
       downloadCacheArgs = [PATHS.micromambaPkgs, `micromamba-pkgs ${key}`]
       downloadCacheHit = await tryRestoreCache(...downloadCacheArgs)
     }
-    await createOrUpdateEnv(envName, envFilePath, inputs.extraSpecs)
+    await createOrUpdateEnv(envName, envFilePath, inputs.extraSpecs, inputs.logLevel)
   }
 
   // Add micromamba activate to profile
@@ -382,7 +388,8 @@ async function main () {
     cacheEnvKey: core.getInput('cache-env-key'),
     // Not implemented
     // cacheEnvAlwaysUpdate: core.getBooleanInput('cache-env-always-update')
-    cacheEnvAlwaysUpdate: false
+    cacheEnvAlwaysUpdate: false,
+    logLevel: core.getInput('log-level')
   }
 
   // Read environment file
@@ -399,11 +406,13 @@ async function main () {
 
   // Show environment info
   core.startGroup('Environment info')
+  const infoCmd = micromambaCmd('info', inputs.logLevel)
+  const listCmd = micromambaCmd('list', inputs.logLevel)
   if (MAMBA_PLATFORM === 'win') {
-    await executePwsh('micromamba info')
-    await executePwsh('micromamba list')
+    await executePwsh(infoCmd)
+    await executePwsh(listCmd)
   } else {
-    await executeBash(`source ${PATHS.bashprofile} && micromamba info && micromamba list`)
+    await executeBash(`source ${PATHS.bashprofile} && ${infoCmd} && ${listCmd}`)
   }
   core.endGroup()
 
