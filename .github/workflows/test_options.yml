@@ -7,7 +7,7 @@ on:
 
 jobs:
   test_enviroment_file_and_enviroment_name:
-    name: Test options
+    name: Test environment-file, environment-name, extra-specs, log-level
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -31,6 +31,7 @@ jobs:
           extra-specs: |
             pytest=${{ matrix.pytest }}
             python=3.8.8
+          log-level: debug
 
       - name: run python in powershell
         shell: powershell
