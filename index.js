@@ -8,7 +8,7 @@ const yaml = require('js-yaml')
 
 const cache = require('@actions/cache')
 const core = require('@actions/core')
-const exec = require('@actions/exec').exec
+const exec = require('@actions/exec')
 
 const MAMBA_PLATFORM = { darwin: 'osx', linux: 'linux', win32: 'win' }[process.platform]
 if (!MAMBA_PLATFORM) {
@@ -39,7 +39,7 @@ function getInputAsArray (name) {
 
 async function executeShell (...command) {
   try {
-    await exec(command[0], command.slice(1))
+    return await exec.getExecOutput(command[0], command.slice(1))
   } catch (error) {
     throw Error(`Failed to execute ${JSON.stringify(command)}`)
   }
@@ -49,9 +49,15 @@ function executeBash (command) {
   return executeShell('bash', '-c', command)
 }
 
+function executeBashLogin (command) {
+  return executeShell('bash', '-lc', command)
+}
+
 function executePwsh (command) {
   return executeShell('powershell', '-command', `${command}; exit $LASTEXITCODE`)
 }
+
+const executeLoginShell = MAMBA_PLATFORM === 'win' ? executePwsh : executeBashLogin
 
 function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
   return `${micromambaExe} ${command}` + (logLevel ? ` --log-level ${logLevel}` : '')
@@ -316,11 +322,6 @@ function determineEnvironmentName (inputs, envFilePath, envYaml) {
 }
 
 async function installEnvironment (inputs, envFilePath, envYaml) {
-  if (!envFilePath && !inputs.extraSpecs.length) {
-    core.info("Skipping environment install because no 'environment-file' or 'extra-specs' are set")
-    return
-  }
-
   const envName = determineEnvironmentName(inputs, envFilePath, envYaml)
 
   core.startGroup(`Install environment ${envName} from ${envFilePath || ''} ${inputs.extraSpecs || ''}...`)
@@ -370,6 +371,13 @@ Write-Host "Profile already exists and new content added"
   fs.appendFileSync(PATHS.bashprofile, '\n' + autoactivateCmd)
   core.info(`Contents of ${PATHS.bashprofile}:\n${fs.readFileSync(PATHS.bashprofile)}`)
 
+  // Sanity check
+  const { stdout: micromambaInfoJson } = await executeLoginShell(micromambaCmd('info --json'))
+  const autoactivatedEnvLocation = yaml.safeLoad(micromambaInfoJson)['env location']
+  if (autoactivatedEnvLocation === '-') {
+    throw Error('Error setting up environment')
+  }
+
   // Save cache on workflow success
   if (shouldTryDownloadCache && inputs.cacheDownloads && !downloadCacheHit) {
     saveCacheOnPost(...downloadCacheArgs)
@@ -418,18 +426,16 @@ async function main () {
   }
 
   await installMicromamba(inputs, envYaml?.channels)
-  await installEnvironment(inputs, envFilePath, envYaml)
+  if (envFilePath || inputs.extraSpecs.length) {
+    await installEnvironment(inputs, envFilePath, envYaml)
+  } else {
+    core.info("Skipping environment install because no 'environment-file' or 'extra-specs' are set")
+  }
 
   // Show environment info
   core.startGroup('Environment info')
-  const infoCmd = micromambaCmd('info', inputs.logLevel)
-  const listCmd = micromambaCmd('list', inputs.logLevel)
-  if (MAMBA_PLATFORM === 'win') {
-    await executePwsh(infoCmd)
-    await executePwsh(listCmd)
-  } else {
-    await executeBash(`source ${PATHS.bashprofile} && ${infoCmd} && ${listCmd}`)
-  }
+  await executeLoginShell(micromambaCmd('info', inputs.logLevel))
+  await executeLoginShell(micromambaCmd('list', inputs.logLevel))
   core.endGroup()
 
   // This must always be last in main().
