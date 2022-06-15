@@ -78,7 +78,7 @@ Custom environment cache key used with 'cache-env: true'. With the default envir
 
 Micromamba log level to use. One of "trace", "debug", "info", "warning", "error", "critical", "off".
 
-Default value: "info"
+Default value: "warning"
 
 ### `installer-url`
 

@@ -90,7 +90,7 @@ inputs:
     description: >-
       Micromamba log level to use.
       One of "trace", "debug", "info", "warning", "error", "critical", "off".
-    default: info
+    default: warning
   installer-url:
     description: >-
       Base URL to fetch Micromamba from. Files will be downloaded from
