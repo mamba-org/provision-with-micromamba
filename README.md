@@ -15,43 +15,87 @@ They are preinstalled in the default GitHub Actions environments.
 
 ### `environment-file`
 
-The environment.yml or .lock file for the conda environment. If 'false', no enviroment will be created (only Micromamba will be installed) and you should provide 'channels'.
+Required. The 'environment.yml' or '.lock' file for the Conda environment. If 'false', only `extra-specs` will be considered and you should provide 'channels'. If both 'environment-file' and 'extra-specs' are empty, no enviroment will be created (only Micromamba will be installed). See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file) for more information.
+
+Default value: "environment.yml"
 
 ### `environment-name`
 
-(Optional) The name of the conda environment (defaults to name from the environment.yml file). Required if 'environment-file' is a '.lock' file or 'false'.
+The name of the Conda environment. Defaults to name from the environment.yml file. Required if 'environment-file' is a '.lock' file or 'false'.
 
 ### `micromamba-version`
 
-(Optional) Version of micromamba to use, eg. '0.20' (default 'latest').
+Version of micromamba to use, eg. '0.20'. See https://github.com/mamba-org/mamba/releases/ for a list of releases.
+
+Default value: "latest"
 
 ### `extra-specs`
 
-(Optional) Additional specifications (packages) to install. Pretty useful when using matrix builds to pin versions of a test/run dependency. For multiple packages, use multiline syntax (see examples). Note that selectors (e.g. `sel(linux): my-linux-package`, `sel(osx): my-osx-package`, `sel(win): my-win-package`) are available.
+Additional specifications (packages) to install.
+Pretty useful when using matrix builds to pin versions of a test/run dependency.
+For multiple packages, use multiline syntax:
+```yaml
+extra-specs: |
+  python=3.10
+  xtensor
+```
+Note that selectors
+(e.g. `sel(linux): my-linux-package`, `sel(osx): my-osx-package`, `sel(win): my-win-package`)
+are available.
+
 
 ### `channels`
 
-(Optional) Comma separated list of channels to use in order of priority (eg., `conda-forge,my-private-channel`)
+Comma separated list of channels to use in order of priority (eg., `conda-forge,my-private-channel`)
+
+### `condarc-file`
+
+Path to a `.condarc` file to use. See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/) for more information.
+
+### `channel-priority`
+
+Channel priority to use. One of "strict", "flexible", and "disabled". See https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html#strict-channel-priority for more information.
+
+Default value: "strict"
 
 ### `cache-downloads`
 
-(Optional) If 'true', cache downloaded packages across calls to the provision-with-micromamba action. Cache invalidation can be controlled using the 'cache-downloads-key' option.
+If 'true', cache downloaded packages across calls to the provision-with-micromamba action. Cache invalidation can be controlled using the 'cache-downloads-key' option.
 
 ### `cache-downloads-key`
 
-(Optional) Custom download cache key used with 'cache-downloads: true'. The default download cache key will invalidate the cache once per day.
+Custom download cache key used with 'cache-downloads: true'. The default download cache key will invalidate the cache once per day.
 
 ### `cache-env`
 
-(Optional) If 'true', cache installed environments across calls to the provision-with-micromamba action. Cache invalidation can be controlled using the 'cache-env-key' option.
+If 'true', cache installed environments across calls to the provision-with-micromamba action. Cache invalidation can be controlled using the 'cache-env-key' option.
 
 ### `cache-env-key`
 
-(Optional) Custom environment cache key used with 'cache-env: true'. With the default environment cache key, separate caches will be created for each operating system (eg., Linux) and platform (eg., x64) and day (eg., 2022-01-31), and the cache will be invalidated whenever the contents of 'environment-file' or 'extra-specs' change.
+Custom environment cache key used with 'cache-env: true'. With the default environment cache key, separate caches will be created for each operating system (eg., Linux) and platform (eg., x64) and day (eg., 2022-01-31), and the cache will be invalidated whenever the contents of 'environment-file' or 'extra-specs' change.
 
 ### `log-level`
 
-(Optional) Micromamba log level to use. One of "trace", "debug", "info", "warning", "error", "critical", "off".
+Micromamba log level to use. One of "trace", "debug", "info", "warning", "error", "critical", "off".
+
+Default value: "info"
+
+### `installer-url`
+
+Base URL to fetch Micromamba from. Files will be downloaded from `<base url>/<platform>/<version>`, eg. https://micro.mamba.pm/api/micromamba/linux-64/latest.
+
+Default value: "https://micro.mamba.pm/api/micromamba"
+
+### `condarc-options`
+
+More options to append to `.condarc`. Must be a string of valid YAML:
+
+```yaml
+condarc-options: |
+  proxy_servers:
+    http: ...
+```
+
 
 <!-- end generated -->
 
