@@ -259,7 +259,7 @@ async function installMicromamba (inputs, extraChannels) {
   if (!fs.existsSync(PATHS.micromambaBinFolder)) {
     core.startGroup('Install micromamba ...')
     const installer = {
-      win: installMicromambaWindows,
+      win32: installMicromambaWindows,
       linux: installMicromambaPosix,
       darwin: installMicromambaPosix
     }[process.platform]
