@@ -16,7 +16,7 @@ const PATHS = {
   bashrc: path.join(os.homedir(), '.bashrc'),
   bashrcBak: path.join(os.homedir(), '.bashrc.actionbak'),
   micromambaBinFolder: path.join(os.homedir(), 'micromamba-bin'),
-  micromambaExe: path.join(os.homedir(), 'micromamba-bin', process.platform === 'win' ? 'micromamba.exe' : 'micromamba'),
+  micromambaExe: path.join(os.homedir(), 'micromamba-bin', process.platform === 'win32' ? 'micromamba.exe' : 'micromamba'),
   micromambaRoot: path.join(os.homedir(), 'micromamba'),
   micromambaPkgs: path.join(os.homedir(), 'micromamba', 'pkgs'),
   micromambaEnvs: path.join(os.homedir(), 'micromamba', 'envs')
@@ -30,7 +30,7 @@ function getCondaArch () {
     [['osx', 'x64']]: 'osx-64',
     [['linux', 'x64']]: 'linux-64',
     [['linux', 'arm64']]: 'linux-aarch64',
-    [['win', 'x64']]: 'win-64'
+    [['win32', 'x64']]: 'win-64'
   }[[process.platform, process.arch]]
   if (!arch) {
     throw Error(`Platform ${process.platform}/${process.arch} not supported.`)
@@ -67,7 +67,7 @@ function executePwsh (command) {
   return executeShell('powershell', '-command', `${command}; exit $LASTEXITCODE`)
 }
 
-const executeLoginShell = process.platform === 'win' ? executePwsh : executeBashLogin
+const executeLoginShell = process.platform === 'win32' ? executePwsh : executeBashLogin
 
 function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
   return `${micromambaExe} ${command}` + (logLevel ? ` --log-level ${logLevel}` : '')
@@ -294,7 +294,7 @@ async function createOrUpdateEnv (envName, envFilePath, extraSpecs, logLevel) {
   if (envFilePath) {
     cmd += ' -f ' + envFilePath
   }
-  if (process.platform === 'win') {
+  if (process.platform === 'win32') {
     await executePwsh(cmd)
   } else {
     await executeBash(cmd)
@@ -365,7 +365,7 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
 
   // Add micromamba activate to profile
   const autoactivateCmd = `micromamba activate ${envName};`
-  if (process.platform === 'win') {
+  if (process.platform === 'win32') {
     const powershellAutoActivateEnv = `if (!(Test-Path $profile))
 {
 New-Item -path $profile -type "file" -value "${autoactivateCmd}"
