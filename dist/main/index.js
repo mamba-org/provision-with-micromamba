@@ -22,23 +22,33 @@ const cache = __nccwpck_require__(7799)
 const core = __nccwpck_require__(2186)
 const exec = __nccwpck_require__(1514)
 
-const MAMBA_PLATFORM = { darwin: 'osx', linux: 'linux', win32: 'win' }[process.platform]
-if (!MAMBA_PLATFORM) {
-  throw Error(`Platform ${process.platform} not supported.`)
-}
 const PATHS = {
   condarc: path.join(os.homedir(), '.condarc'),
   bashprofile: path.join(os.homedir(), '.bash_profile'),
   bashrc: path.join(os.homedir(), '.bashrc'),
   bashrcBak: path.join(os.homedir(), '.bashrc.actionbak'),
   micromambaBinFolder: path.join(os.homedir(), 'micromamba-bin'),
-  micromambaExe: path.join(os.homedir(), 'micromamba-bin', MAMBA_PLATFORM === 'win' ? 'micromamba.exe' : 'micromamba'),
+  micromambaExe: path.join(os.homedir(), 'micromamba-bin', process.platform === 'win32' ? 'micromamba.exe' : 'micromamba'),
   micromambaRoot: path.join(os.homedir(), 'micromamba'),
   micromambaPkgs: path.join(os.homedir(), 'micromamba', 'pkgs'),
   micromambaEnvs: path.join(os.homedir(), 'micromamba', 'envs')
 }
 
 // --- Utils ---
+
+function getCondaArch () {
+  const arch = {
+    [['darwin', 'arm64']]: 'osx-arm64',
+    [['darwin', 'x64']]: 'osx-64',
+    [['linux', 'x64']]: 'linux-64',
+    [['linux', 'arm64']]: 'linux-aarch64',
+    [['win32', 'x64']]: 'win-64'
+  }[[process.platform, process.arch]]
+  if (!arch) {
+    throw Error(`Platform ${process.platform}/${process.arch} not supported.`)
+  }
+  return arch
+}
 
 function getInputAsArray (name) {
   // From https://github.com/actions/cache/blob/main/src/utils/actionUtils.ts
@@ -69,7 +79,7 @@ function executePwsh (command) {
   return executeShell('powershell', '-command', `${command}; exit $LASTEXITCODE`)
 }
 
-const executeLoginShell = MAMBA_PLATFORM === 'win' ? executePwsh : executeBashLogin
+const executeLoginShell = process.platform === 'win32' ? executePwsh : executeBashLogin
 
 function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
   return `${micromambaExe} ${command}` + (logLevel ? ` --log-level ${logLevel}` : '')
@@ -149,7 +159,7 @@ async function installMicromambaPosix (micromambaUrl, logLevel) {
   }
 
   await executeBash(`chmod u+x ${PATHS.micromambaExe}`)
-  if (MAMBA_PLATFORM === 'osx') {
+  if (process.platform === 'darwin') {
     // macos
     await executeBash(micromambaCmd('shell init -s bash -p ~/micromamba -y', logLevel, PATHS.micromambaExe))
     // TODO need to fix a check in micromamba so that this works
@@ -249,11 +259,11 @@ async function installMicromamba (inputs, extraChannels) {
   if (!fs.existsSync(PATHS.micromambaBinFolder)) {
     core.startGroup('Install micromamba ...')
     const installer = {
-      win: installMicromambaWindows,
+      win32: installMicromambaWindows,
       linux: installMicromambaPosix,
-      osx: installMicromambaPosix
-    }[MAMBA_PLATFORM]
-    const micromambaUrl = `${inputs.installerUrl}/${MAMBA_PLATFORM}-64/${inputs.micromambaVersion}`
+      darwin: installMicromambaPosix
+    }[process.platform]
+    const micromambaUrl = `${inputs.installerUrl}/${getCondaArch()}/${inputs.micromambaVersion}`
     await installer(micromambaUrl, inputs.logLevel)
     core.exportVariable('MAMBA_ROOT_PREFIX', PATHS.micromambaRoot)
     core.exportVariable('MAMBA_EXE', PATHS.micromambaExe)
@@ -268,7 +278,8 @@ async function installMicromamba (inputs, extraChannels) {
 
 function isSelected (item) {
   if (/sel\(.*\):.*/gi.test(item)) {
-    return new RegExp('sel\\(' + MAMBA_PLATFORM + '\\):.*', 'gi').test(item)
+    const condaPlatform = getCondaArch().split('-')[0]
+    return new RegExp(`sel\\(${condaPlatform}\\):.*`, 'gi').test(item)
   }
   return true
 }
@@ -295,7 +306,7 @@ async function createOrUpdateEnv (envName, envFilePath, extraSpecs, logLevel) {
   if (envFilePath) {
     cmd += ' -f ' + envFilePath
   }
-  if (MAMBA_PLATFORM === 'win') {
+  if (process.platform === 'win32') {
     await executePwsh(cmd)
   } else {
     await executeBash(cmd)
@@ -335,13 +346,14 @@ function determineEnvironmentName (inputs, envFilePath, envYaml) {
 
 async function installEnvironment (inputs, envFilePath, envYaml) {
   const envName = determineEnvironmentName(inputs, envFilePath, envYaml)
+  const defaultCacheKey = `${getCondaArch()} ${today()}`
 
   core.startGroup(`Install environment ${envName} from ${envFilePath || ''} ${inputs.extraSpecs || ''}...`)
   let downloadCacheHit, downloadCacheArgs, envCacheHit, envCacheArgs
 
   // Try to load the entire env from cache.
   if (inputs.cacheEnv) {
-    let key = inputs.cacheEnvKey || `${MAMBA_PLATFORM}-${process.arch} ${today()}`
+    let key = inputs.cacheEnvKey || defaultCacheKey
     if (envFilePath) {
       key += ' file: ' + sha256Short(fs.readFileSync(envFilePath))
     }
@@ -356,7 +368,7 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
   if (shouldTryDownloadCache) {
     // Try to restore the download cache.
     if (inputs.cacheDownloads) {
-      const key = inputs.cacheDownloadsKey || `${MAMBA_PLATFORM}-${process.arch} ${today()}`
+      const key = inputs.cacheDownloadsKey || defaultCacheKey
       downloadCacheArgs = [PATHS.micromambaPkgs, `micromamba-pkgs ${key}`]
       downloadCacheHit = await tryRestoreCache(...downloadCacheArgs)
     }
@@ -365,7 +377,7 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
 
   // Add micromamba activate to profile
   const autoactivateCmd = `micromamba activate ${envName};`
-  if (MAMBA_PLATFORM === 'win') {
+  if (process.platform === 'win32') {
     const powershellAutoActivateEnv = `if (!(Test-Path $profile))
 {
 New-Item -path $profile -type "file" -value "${autoactivateCmd}"
