@@ -31,6 +31,7 @@ jobs:
       - name: install mamba
         uses: ./
         with:
+          log-level: trace
           environment-file: ${{ matrix.environment-file }}
           environment-name: test-channels
           extra-specs: |
