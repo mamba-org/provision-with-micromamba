@@ -98,8 +98,14 @@ jobs:
       fail-fast: false
       matrix:
         environment-file: [false, environment.yml]
+        condarc-file: [null, /tmp/condarc]
     steps:
       - uses: actions/checkout@v2
+
+      - name: Create .condarc
+        run: |
+          echo "channels: [conda-forge, defaults]" > /tmp/condarc
+        if: condarc-file != 'null'
 
       - name: install mamba
         uses: ./
@@ -109,6 +115,7 @@ jobs:
           extra-specs: |
             xtensor
           channels: conda-forge,blah
+          condarc-file: 
 
   test_environment_without_name:
     name: "Test environment.yml without name: attribute"
