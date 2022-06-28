@@ -17,13 +17,15 @@ jobs:
       fail-fast: false
       matrix:
         environment-file: [false, environment.yml]
-        condarc-file: [null, /tmp/condarc]
+        #condarc-file: [null, /tmp/condarc]
+        condarc-file: [/tmp/condarc]
     steps:
       - uses: actions/checkout@v2
 
       - name: Create .condarc
         run: |
-          echo -e "channels: [conda-forge, defaults]\r\n" > /tmp/condarc
+          #echo -e "channels: [conda-forge, defaults]\r\n" > /tmp/condarc
+          python -c "import os; open(os.path.expanduser('~/.condarc'), 'wb').write(b'channel_alias: https://conda.prod.quantco.cloud/t/${CONDA_API_KEY}/get\r\n\r\nchannels:\r\n  - qc-internal\r\n  - quantco_main\r\n  - conda-forge\r\n\r\ncustom_channels:\r\n  quantco_main: https://${CONDA_CHANNEL_UPLOAD_USER}:${CONDA_CHANNEL_UPLOAD_PASSWORD}@conda.quantco.cloud\r\n\r\ncustom_multichannels:\r\n  conda-forge:\r\n    - https://conda.anaconda.org/conda-forge\r\n')"
         if: matrix.condarc-file
 
       - name: install mamba
