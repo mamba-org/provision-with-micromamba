@@ -36,4 +36,4 @@ jobs:
           channels: conda-forge,blah
           condarc-file: ${{ matrix.condarc-file }}
 
-      - run: python -c 'print(open("~/.condarc", "rb").read())'
+      - run: python -c 'import os; print(open(os.path.expanduser("~/.condarc"), "rb").read())'
