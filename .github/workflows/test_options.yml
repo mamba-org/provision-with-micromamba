@@ -23,8 +23,8 @@ jobs:
 
       - name: Create .condarc
         run: |
-          echo "channels: [conda-forge, defaults]" > /tmp/condarc
-        if: matrix.condarc-file != 'null'
+          echo -e "channels: [conda-forge, defaults]\r\n" > /tmp/condarc
+        if: matrix.condarc-file
 
       - name: install mamba
         uses: ./
