@@ -35,3 +35,5 @@ jobs:
             xtensor
           channels: conda-forge,blah
           condarc-file: ${{ matrix.condarc-file }}
+
+      - run: python -c 'print(open("~/.condarc", "rb").read())'
