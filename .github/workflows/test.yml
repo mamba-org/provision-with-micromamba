@@ -8,6 +8,7 @@ on:
 jobs:
   test:
     name: test
+    timeout-minutes: 10
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -74,6 +75,7 @@ jobs:
 
   test_bash:
     name: Test bash
+    timeout-minutes: 10
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -105,6 +107,7 @@ jobs:
 
   test_docker:
     name: test
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     container: ${{ matrix.container }}
     strategy:
