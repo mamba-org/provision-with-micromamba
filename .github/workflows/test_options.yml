@@ -12,6 +12,7 @@ defaults:
 jobs:
   test_enviroment_file_and_enviroment_name:
     name: Test environment-file, environment-name, extra-specs, log-level
+    timeout-minutes: 10
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -93,6 +94,7 @@ jobs:
 
   test_channels:
     name: Test channels
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -112,6 +114,7 @@ jobs:
 
   test_environment_without_name:
     name: "Test environment.yml without name: attribute"
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -129,6 +132,7 @@ jobs:
 
   test_extra_specs:
     name: Test extra-specs
+    timeout-minutes: 10
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -179,6 +183,7 @@ jobs:
 
   test_channel_priority:
     name: Test channel-priority
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -199,6 +204,7 @@ jobs:
 
   test_condarc_file:
     name: Test condarc-file
+    timeout-minutes: 10
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -225,6 +231,7 @@ jobs:
 
   test_condarc_options:
     name: Test condarc-options
+    timeout-minutes: 10
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
