@@ -63,6 +63,7 @@ async function executePwsh (command) {
   if (!result.stdout.includes(sentinel)) {
     throw Error(`Failed to execute ${JSON.stringify(command)} in powershell`)
   }
+  result.stdout = result.stdout.replaceAll(sentinel, '')
   return result
 }
 
@@ -382,8 +383,6 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
   if (process.platform === 'win32') {
     const ps1File = (await executePwsh('echo $profile')).stdout.trim()
     core.warning(path.dirname(ps1File))
-    fs.mkdirSync(path.dirname(ps1File), { recursive: true })
-    core.warning([fs.existsSync(path.dirname(ps1File))])
     fs.appendFileSync(ps1File, '\n' + autoactivateCmd)
     dumpFileContents(ps1File)
   }
