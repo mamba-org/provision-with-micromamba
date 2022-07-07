@@ -9,34 +9,21 @@ const yaml = require('js-yaml')
 const cache = require('@actions/cache')
 const core = require('@actions/core')
 const exec = require('@actions/exec')
+const io = require('@actions/io')
 
 const PATHS = {
   condarc: path.join(os.homedir(), '.condarc'),
   bashprofile: path.join(os.homedir(), '.bash_profile'),
-  bashrc: path.join(os.homedir(), '.bashrc'),
-  bashrcBak: path.join(os.homedir(), '.bashrc.actionbak'),
   micromambaBinFolder: path.join(os.homedir(), 'micromamba-bin'),
-  micromambaExe: path.join(os.homedir(), 'micromamba-bin', process.platform === 'win32' ? 'micromamba.exe' : 'micromamba'),
-  micromambaRoot: path.join(os.homedir(), 'micromamba'),
-  micromambaPkgs: path.join(os.homedir(), 'micromamba', 'pkgs'),
-  micromambaEnvs: path.join(os.homedir(), 'micromamba', 'envs')
+  micromambaExe: path.join(os.homedir(), 'micromamba-bin', 'micromamba'),
+  // Without the "-root" suffix it causes problems, why?
+  // xref https://github.com/mamba-org/mamba/issues/1751
+  micromambaRoot: path.join(os.homedir(), 'micromamba-root'),
+  micromambaPkgs: path.join(os.homedir(), 'micromamba-root', 'pkgs'),
+  micromambaEnvs: path.join(os.homedir(), 'micromamba-root', 'envs')
 }
 
-// --- Utils ---
-
-function getCondaArch () {
-  const arch = {
-    [['darwin', 'arm64']]: 'osx-arm64',
-    [['darwin', 'x64']]: 'osx-64',
-    [['linux', 'x64']]: 'linux-64',
-    [['linux', 'arm64']]: 'linux-aarch64',
-    [['win32', 'x64']]: 'win-64'
-  }[[process.platform, process.arch]]
-  if (!arch) {
-    throw Error(`Platform ${process.platform}/${process.arch} not supported.`)
-  }
-  return arch
-}
+// --- OS utils ---
 
 function getInputAsArray (name) {
   // From https://github.com/actions/cache/blob/main/src/utils/actionUtils.ts
@@ -47,31 +34,40 @@ function getInputAsArray (name) {
     .filter(x => x !== '')
 }
 
-async function executeShell (...command) {
+async function executeSubproc (...args) {
+  core.debug(`Running shell command ${JSON.stringify(args)}`)
   try {
-    return await exec.getExecOutput(command[0], command.slice(1))
+    return await exec.getExecOutput(...args)
   } catch (error) {
-    throw Error(`Failed to execute ${JSON.stringify(command)}`)
+    throw Error(`Failed to execute ${JSON.stringify(args)}: ${error}`)
   }
 }
 
-function executeBash (command) {
-  return executeShell('bash', '-c', command)
+async function executeBashFlags (flags, command) {
+  return await executeSubproc('bash', ['-eo', 'pipefail', ...flags, '-c', command])
 }
 
-function executeBashLogin (command) {
-  return executeShell('bash', '-lc', command)
+async function executeBash (...args) {
+  return await executeBashFlags([], ...args)
 }
 
-function executePwsh (command) {
-  return executeShell('powershell', '-command', `${command}; exit $LASTEXITCODE`)
+async function executeBashLogin (...args) {
+  return await executeBashFlags(['-l'], ...args)
+}
+
+async function executePwsh (command) {
+  // PowerShell seems to not always fail when the command fails.
+  const sentinel = `provision-with-micromamba-${Math.random().toString().slice(2)}`
+  command = `${command}; echo ${sentinel}`
+  const result = await executeSubproc('powershell', ['-command', command])
+  if (!result.stdout.includes(sentinel)) {
+    throw Error(`Failed to execute ${JSON.stringify(command)} in powershell`)
+  }
+  result.stdout = result.stdout.replaceAll(sentinel, '')
+  return result
 }
 
 const executeLoginShell = process.platform === 'win32' ? executePwsh : executeBashLogin
-
-function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
-  return `${micromambaExe} ${command}` + (logLevel ? ` --log-level ${logLevel}` : '')
-}
 
 function sha256 (s) {
   const h = crypto.createHash('sha256')
@@ -83,19 +79,60 @@ function sha256Short (s) {
   return sha256(s).substr(0, 8)
 }
 
-function touch (filename) {
-  // https://remarkablemark.org/blog/2017/12/17/touch-file-nodejs/
-  const time = new Date()
-
+function rmRf (dir) {
   try {
-    fs.utimesSync(filename, time, time)
-  } catch (err) {
-    fs.closeSync(fs.openSync(filename, 'w'))
+    fs.rmSync(dir, { recursive: true })
+  } catch (e) {
+    core.warning(`Error removing directory ${dir}: ${e}`)
   }
+}
+
+async function withMkdtemp (callback) {
+  const tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), 'micromamba-'))
+  let res
+  try {
+    res = await callback(tmpdir)
+  } catch (e) {
+    rmRf(tmpdir)
+    throw e
+  }
+  rmRf(tmpdir)
+  return res
 }
 
 function today () {
   return new Date().toDateString()
+}
+
+async function cygpath (s) {
+  return (await executeSubproc('cygpath', [s])).stdout.trim()
+}
+
+async function sleep (ms) {
+  await new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function retry (callback, backoffTimes = [2000, 5000, 10000]) {
+  for (const backoff of backoffTimes.concat(null)) {
+    if (backoff) {
+      try {
+        return await callback()
+      } catch (error) {
+        core.warning(`${callback} failed, retrying in ${backoff} seconds: ${error}`)
+        await sleep(backoff)
+      }
+    } else {
+      return await callback()
+    }
+  }
+}
+
+async function haveBash () {
+  return !!(await io.which('bash'))
+}
+
+function dumpFileContents (path) {
+  core.info(`--- Contents of ${path} ---\n${fs.readFileSync(path)}\n--- End contents of ${path} ---`)
 }
 
 async function tryRestoreCache (path, key, ...args) {
@@ -114,113 +151,90 @@ function saveCacheOnPost (paths, key, options) {
   core.saveState('postCacheArgs', JSON.stringify([...old, [paths, key, options]]))
 }
 
+// --- Mamba utils ---
+
+function getCondaArch () {
+  const arch = {
+    [['darwin', 'arm64']]: 'osx-arm64',
+    [['darwin', 'x64']]: 'osx-64',
+    [['linux', 'x64']]: 'linux-64',
+    [['linux', 'arm64']]: 'linux-aarch64',
+    [['win32', 'x64']]: 'win-64'
+  }[[process.platform, process.arch]]
+  if (!arch) {
+    throw Error(`Platform ${process.platform}/${process.arch} not supported.`)
+  }
+  return arch
+}
+
+function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
+  return `${micromambaExe} ${command}` + (logLevel ? ` --log-level ${logLevel}` : '')
+}
+
+async function executeMicromambaShellInit (shell, logLevel) {
+  const cmd = micromambaCmd(`shell init -s ${shell} -p ${PATHS.micromambaRoot} -y`, logLevel, PATHS.micromambaExe)
+  const cmd2 = cmd.split(' ')
+  return await executeSubproc(cmd2[0], cmd2.slice(1))
+}
+
 // --- Micromamba download + installation ---
 
-function sleep (ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-async function retry (callback, backoffTimes = [2000, 5000, 10000]) {
-  for (const backoff of backoffTimes.concat(null)) {
-    if (backoff) {
-      try {
-        return await callback()
-      } catch (error) {
-        core.warning(`${callback} failed, retrying in ${backoff} seconds: ${error}`)
-        await sleep(backoff)
-      }
-    } else {
-      return await callback()
-    }
-  }
-}
-
-async function installMicromambaPosix (micromambaUrl, logLevel) {
-  const posixDownloader = `curl ${micromambaUrl} -Ls --retry 5 --retry-delay 1 \
-    | tar --strip-components=1 -vxjC ${PATHS.micromambaBinFolder} bin/micromamba`
-  const cacheKey = `micromamba-bin ${micromambaUrl} ${today()}`
-  const cacheArgs = [PATHS.micromambaBinFolder, cacheKey]
-  if (!await tryRestoreCache(...cacheArgs)) {
-    await executeBash(`mkdir -p ${PATHS.micromambaBinFolder}`)
-    await retry(() => executeBash(posixDownloader))
-    saveCacheOnPost(...cacheArgs)
-  }
-
-  await executeBash(`chmod u+x ${PATHS.micromambaExe}`)
-  if (process.platform === 'darwin') {
-    // macos
-    await executeBash(micromambaCmd('shell init -s bash -p ~/micromamba -y', logLevel, PATHS.micromambaExe))
+const setupProfile = {
+  darwin: async logLevel => {
+    await executeMicromambaShellInit('bash', logLevel)
     // TODO need to fix a check in micromamba so that this works
     // https://github.com/mamba-org/mamba/issues/925
-    // await executeBash(micromambaCmd('shell init -s zsh -p ~/micromamba -y', logLevel, PATHS.micromambaExe))
-  } else {
-    // linux
-    // on linux we move the bashrc to a backup and then restore
-    let haveBashrcBackup
-    if (fs.existsSync(PATHS.bashrc)) {
-      fs.renameSync(PATHS.bashrc, PATHS.bashrcBak)
-      haveBashrcBackup = true
+    // await executeMicromambaShellInit('zsh', logLevel)
+  },
+  linux: async logLevel => {
+    await executeMicromambaShellInit('zsh', logLevel)
+    // On Linux, Micromamba modifies .bashrc but we want the modifications to be in .bash_profile.
+    await withMkdtemp(async tmpdir => {
+      const oldHome = process.env.HOME
+      process.env.HOME = tmpdir
+      await executeMicromambaShellInit('bash', logLevel)
+      process.env.HOME = oldHome
+      fs.appendFileSync(PATHS.bashprofile, '\n' + fs.readFileSync(path.join(tmpdir, '.bashrc')))
+    })
+  },
+  win32: async logLevel => {
+    if (await haveBash()) {
+      await executeMicromambaShellInit('bash', logLevel)
     }
-    touch(PATHS.bashrc)
-    try {
-      await executeBash(micromambaCmd('shell init -s bash -p ~/micromamba -y', logLevel, PATHS.micromambaExe))
-      await executeBash(micromambaCmd('shell init -s zsh -p ~/micromamba -y', logLevel, PATHS.micromambaExe))
-      fs.appendFileSync(PATHS.bashprofile, '\n' + fs.readFileSync(PATHS.bashrc, 'utf8'), 'utf8')
-      if (haveBashrcBackup) {
-        fs.renameSync(PATHS.bashrcBak, PATHS.bashrc)
-      }
-    } catch (error) {
-      if (haveBashrcBackup) {
-        fs.renameSync(PATHS.bashrcBak, PATHS.bashrc)
-      }
-      throw error
-    }
+    // https://github.com/mamba-org/mamba/issues/1756
+    await executeMicromambaShellInit('cmd.exe', logLevel)
+    await executeMicromambaShellInit('powershell', logLevel)
   }
 }
 
-async function installMicromambaWindows (micromambaUrl, logLevel) {
-  const powershellDownloader = `$count = 0
-do{
-    try
-    {
-        Invoke-Webrequest -URI ${micromambaUrl} -OutFile ${PATHS.micromambaBinFolder}\\micromamba.tar.bz2
-        $success = $true
-    }
-    catch
-    {
-        Start-sleep -Seconds (10 * ($count + 1))
-    }
-    $count++
-}until($count -eq 5 -or $success)
-if(-not($success)){exit}`
-
-  const cacheKey = `micromamba-bin ${micromambaUrl} ${new Date().toDateString()}`
-  const cacheArgs = [PATHS.micromambaBinFolder, cacheKey]
-  if (!await tryRestoreCache(...cacheArgs)) {
-    await executePwsh(`mkdir -path ${PATHS.micromambaBinFolder}`)
-    await retry(() => executePwsh(powershellDownloader))
-    await executePwsh(
-      '$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
-      'tar.exe -xvjf ~/micromamba-bin/micromamba.tar.bz2 --strip-components 2 -C ~/micromamba-bin Library/bin/micromamba.exe;'
-    )
-    saveCacheOnPost(...cacheArgs)
+async function downloadMicromamba (micromambaUrl) {
+  fs.mkdirSync(PATHS.micromambaBinFolder)
+  const curlOpts = `${micromambaUrl} -Ls --retry 5 --retry-delay 1`
+  if (process.platform === 'win32') {
+    // PowerShell does not support piping binary data. Use a temporary file instead.
+    await withMkdtemp(async tmpdir => {
+      const tarBz2Path = path.join(tmpdir, 'micromamba.tar.bz2')
+      const tarPath = tarBz2Path.slice(0, -4)
+      await retry(() => executeSubproc('curl', [...curlOpts.split(' '), '-o', tarBz2Path]))
+      const useWindowsTar = (await io.which('tar', true)).includes('\\system32\\')
+      if (useWindowsTar) {
+        // Bzip2 support in Windows' tar is broken
+        await executeSubproc('bunzip2', [tarBz2Path])
+      }
+      await executeSubproc('tar', [
+        '-xjf', useWindowsTar ? tarPath : await cygpath(tarBz2Path),
+        '-C', useWindowsTar ? PATHS.micromambaBinFolder : cygpath(PATHS.micromambaBinFolder),
+        '--strip-components=2', 'Library/bin/micromamba.exe'
+      ])
+    })
+  } else {
+    const tarOpts = '-xj -O bin/micromamba'
+    await retry(() => executeBash(`curl ${curlOpts} | tar ${tarOpts} > ${PATHS.micromambaExe}`))
+    fs.chmodSync(PATHS.micromambaExe, 0o755)
   }
-
-  await executePwsh(micromambaCmd('shell init -s powershell -p $HOME\\micromamba', logLevel, PATHS.micromambaExe))
-  await executePwsh(
-    '$env:Path = (get-item (get-command git).Path).Directory.parent.FullName + "\\usr\\bin;" + $env:Path;' +
-    micromambaCmd('shell init -s bash -p ~\\micromamba -y', logLevel, PATHS.micromambaExe)
-  )
-  await executePwsh(micromambaCmd('shell init -s cmd.exe -p ~\\micromamba -y', logLevel, PATHS.micromambaExe))
 }
 
-async function installMicromamba (inputs, extraChannels) {
-  // Setup .condarc
-  if (inputs.condaRcFile) {
-    fs.copyFileSync(inputs.condaRcFile, PATHS.condarc)
-  } else {
-    touch(PATHS.condarc)
-  }
+function makeCondarcOpts (inputs, extraChannels) {
   let condarcOpts = {
     always_yes: true,
     show_channel_urls: true,
@@ -240,26 +254,26 @@ async function installMicromamba (inputs, extraChannels) {
   if (moreOpts) {
     condarcOpts = { ...condarcOpts, ...moreOpts }
   }
-  fs.appendFileSync(PATHS.condarc, yaml.safeDump(condarcOpts))
-  core.debug(`Contents of ${PATHS.condarc}:\n${fs.readFileSync(PATHS.condarc)}`)
+  return condarcOpts
+}
 
+async function installMicromamba (inputs) {
   // Install micromamba
   if (!fs.existsSync(PATHS.micromambaBinFolder)) {
     core.startGroup('Install micromamba ...')
-    const installer = {
-      win32: installMicromambaWindows,
-      linux: installMicromambaPosix,
-      darwin: installMicromambaPosix
-    }[process.platform]
     const micromambaUrl = `${inputs.installerUrl}/${getCondaArch()}/${inputs.micromambaVersion}`
-    await installer(micromambaUrl, inputs.logLevel)
+    const cacheKey = `micromamba-bin ${micromambaUrl} ${today()} YYY`
+    const cacheArgs = [PATHS.micromambaBinFolder, cacheKey]
+    if (!await tryRestoreCache(...cacheArgs)) {
+      await downloadMicromamba(micromambaUrl)
+      saveCacheOnPost(...cacheArgs)
+    }
+    await setupProfile[process.platform](inputs.logLevel)
     core.exportVariable('MAMBA_ROOT_PREFIX', PATHS.micromambaRoot)
     core.exportVariable('MAMBA_EXE', PATHS.micromambaExe)
     core.addPath(PATHS.micromambaBinFolder)
     core.endGroup()
   }
-
-  touch(PATHS.bashprofile)
 }
 
 // --- Environment installation ---
@@ -287,18 +301,14 @@ async function createOrUpdateEnv (envName, envFilePath, extraSpecs, logLevel) {
   const action = fs.existsSync(envFolder) ? 'update' : 'create'
   const selectedExtraSpecs = selectSelectors(extraSpecs)
   core.info(`${action} env ${envName}`)
-  let cmd = micromambaCmd(`${action} -n ${envName} --strict-channel-priority -y`, logLevel)
+  let cmd = micromambaCmd(`${action} -n ${envName} --strict-channel-priority -y`, logLevel, PATHS.micromambaExe)
   if (selectedExtraSpecs.length) {
     cmd += ' ' + selectedExtraSpecs.map(e => `"${e}"`).join(' ')
   }
   if (envFilePath) {
     cmd += ' -f ' + envFilePath
   }
-  if (process.platform === 'win32') {
-    await executePwsh(cmd)
-  } else {
-    await executeBash(cmd)
-  }
+  await executeSubproc(cmd)
 }
 
 function determineEnvironmentName (inputs, envFilePath, envYaml) {
@@ -333,6 +343,11 @@ function determineEnvironmentName (inputs, envFilePath, envYaml) {
 }
 
 async function installEnvironment (inputs, envFilePath, envYaml) {
+  if (!(envFilePath || inputs.extraSpecs.length)) {
+    core.info("Skipping environment install because no 'environment-file' or 'extra-specs' are set")
+    return
+  }
+
   const envName = determineEnvironmentName(inputs, envFilePath, envYaml)
   const defaultCacheKey = `${getCondaArch()} ${today()}`
 
@@ -366,22 +381,15 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
   // Add micromamba activate to profile
   const autoactivateCmd = `micromamba activate ${envName};`
   if (process.platform === 'win32') {
-    const powershellAutoActivateEnv = `if (!(Test-Path $profile))
-{
-New-Item -path $profile -type "file" -value "${autoactivateCmd}"
-Write-Host "Created new profile and content added"
-}
-else
-{
-Add-Content -path $profile -value "${autoactivateCmd}"
-Write-Host "Profile already exists and new content added"
-}`
-    await executePwsh(powershellAutoActivateEnv)
-  } else {
-    fs.appendFileSync(PATHS.bashprofile, '\nset -eo pipefail')
+    const ps1File = (await executePwsh('echo $profile')).stdout.trim()
+    core.warning(path.dirname(ps1File))
+    fs.appendFileSync(ps1File, '\n' + autoactivateCmd)
+    dumpFileContents(ps1File)
   }
-  fs.appendFileSync(PATHS.bashprofile, '\n' + autoactivateCmd)
-  core.info(`Contents of ${PATHS.bashprofile}:\n${fs.readFileSync(PATHS.bashprofile)}`)
+  if (await haveBash()) {
+    fs.appendFileSync(PATHS.bashprofile, '\nset -eo pipefail; ' + autoactivateCmd)
+    dumpFileContents(PATHS.bashprofile)
+  }
 
   // Sanity check
   const { stdout: micromambaInfoJson } = await executeLoginShell(micromambaCmd('info --json'))
@@ -437,12 +445,16 @@ async function main () {
     }
   }
 
-  await installMicromamba(inputs, envYaml?.channels)
-  if (envFilePath || inputs.extraSpecs.length) {
-    await installEnvironment(inputs, envFilePath, envYaml)
-  } else {
-    core.info("Skipping environment install because no 'environment-file' or 'extra-specs' are set")
+  // Setup .condarc
+  const condarcOpts = makeCondarcOpts(inputs, envYaml?.extraChannels)
+  if (inputs.condaRcFile) {
+    fs.copyFileSync(inputs.condaRcFile, PATHS.condarc)
   }
+  fs.appendFileSync(PATHS.condarc, yaml.safeDump(condarcOpts))
+  core.debug(`Contents of ${PATHS.condarc}\n${fs.readFileSync(PATHS.condarc)}`)
+
+  await installMicromamba(inputs)
+  await installEnvironment(inputs, envFilePath, envYaml)
 
   // Show environment info
   core.startGroup('Environment info')
@@ -456,6 +468,11 @@ async function main () {
 
 async function run () {
   try {
+    if (process.platform === 'win32') {
+      // Work around bug in Mamba: https://github.com/mamba-org/mamba/issues/1779
+      // This prevents using provision-with-micromamba without bash
+      core.addPath(path.dirname(await io.which('cygpath', true)))
+    }
     await main()
   } catch (error) {
     core.setFailed(error.message)
