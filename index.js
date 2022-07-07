@@ -223,7 +223,7 @@ async function downloadMicromamba (micromambaUrl) {
       }
       await executeSubproc('tar', [
         '-xjf', useWindowsTar ? tarPath : await cygpath(tarBz2Path),
-        '-C', useWindowsTar ? PATHS.micromambaBinFolder : cygpath(PATHS.micromambaBinFolder),
+        '-C', useWindowsTar ? PATHS.micromambaBinFolder : await cygpath(PATHS.micromambaBinFolder),
         '--strip-components=2', 'Library/bin/micromamba.exe'
       ])
     })
