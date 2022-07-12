@@ -63176,12 +63176,15 @@ function makeCondarcOpts (inputs, extraChannels) {
     condarcOpts.channel_alias = inputs.channelAlias
   }
   let channels = []
-  if (inputs.channels)
-    channels = inputs.channels.split(',').map(s => s.trim());
-  if (extraChannels)
-    channels.push.apply(channels, extraChannels);
-  if (channels)
+  if (inputs.channels) {
+    channels = inputs.channels.split(',').map(s => s.trim())
+  }
+  if (extraChannels) {
+    channels.push.apply(channels, extraChannels)
+  }
+  if (channels) {
     condarcOpts.channels = channels
+  }
 
   const moreOpts = yaml.safeLoad(inputs.condaRcOptions)
   if (moreOpts) {

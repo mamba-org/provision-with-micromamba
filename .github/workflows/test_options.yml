@@ -111,6 +111,21 @@ jobs:
           extra-specs: |
             xtensor
           channels: conda-forge,blah
+      - name: check channels are correct
+        run: |
+          CHANNEL_OPT=$(micromamba config get channels)
+          echo $CHANNEL_OPT
+          if [[ "$CHANNEL_OPT" != *"conda-forge"* ]]; then
+            exit 1;
+          fi
+          if [[ "$CHANNEL_OPT" != *"blah"* ]]; then
+            exit 1;
+          fi
+          if [[ "${matrix.environment-file}" != "false" ]]; then
+            if [[ "$CHANNEL_OPT" != *"defaults"* ]]; then
+              exit 1;
+            fi
+          fi
 
   test_environment_without_name:
     name: "Test environment.yml without name: attribute"

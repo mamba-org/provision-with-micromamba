@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "ncc build index.js -o dist/main --license licenses.txt && ncc build post.js -o dist/post --license licenses.txt && node generate-inputs-docs.js",
     "build-readme": "node generate-inputs-docs.js",
-    "lint": "standard *.js"
+    "lint": "standard *.js --fix"
   },
   "repository": {
     "type": "git",
