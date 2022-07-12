@@ -121,7 +121,7 @@ jobs:
           if [[ "$CHANNEL_OPT" != *"blah"* ]]; then
             exit 1;
           fi
-          if [[ "${matrix.environment-file}" != "false" ]]; then
+          if [[ "${{ matrix.environment-file }}" != "false" ]]; then
             if [[ "$CHANNEL_OPT" != *"defaults"* ]]; then
               exit 1;
             fi
