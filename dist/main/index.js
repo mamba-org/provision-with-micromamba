@@ -63175,13 +63175,17 @@ function makeCondarcOpts (inputs, extraChannels) {
   if (inputs.channelAlias) {
     condarcOpts.channel_alias = inputs.channelAlias
   }
-  const channels =
-    inputs.channels && extraChannels
-      ? inputs.channels + ',' + extraChannels.join(', ')
-      : inputs.channels || extraChannels?.join(', ')
-  if (channels) {
-    condarcOpts.channels = channels.split(',').map(s => s.trim())
+  let channels = []
+  if (inputs.channels) {
+    channels = inputs.channels.split(',').map(s => s.trim())
   }
+  if (extraChannels) {
+    channels.push.apply(channels, extraChannels)
+  }
+  if (channels) {
+    condarcOpts.channels = channels
+  }
+
   const moreOpts = yaml.safeLoad(inputs.condaRcOptions)
   if (moreOpts) {
     condarcOpts = { ...condarcOpts, ...moreOpts }
@@ -63378,7 +63382,7 @@ async function main () {
   }
 
   // Setup .condarc
-  const condarcOpts = makeCondarcOpts(inputs, envYaml?.extraChannels)
+  const condarcOpts = makeCondarcOpts(inputs, envYaml?.channels)
   if (inputs.condaRcFile) {
     fs.copyFileSync(inputs.condaRcFile, PATHS.condarc)
   }
