@@ -205,6 +205,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      
+      - name: Modify environemnt.yml to require flexible channel priority
+        run: |
+          contents = open("environment.yml").read()
+          open("environment.yml", "w").write(contents.replace("python", "pkgs/main::python"))
+        shell: python
 
       - name: install mamba
         uses: ./
@@ -216,6 +222,7 @@ jobs:
         run: |
           cat ~/.condarc
           grep "channel_priority: flexible" ~/.condarc
+          micromamba list | grep -qE '3\.8.+python.+pkgs/main'
 
   test_condarc_file:
     name: Test condarc-file
