@@ -5,6 +5,10 @@ on:
       - main
   pull_request: null
 
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     timeout-minutes: 10
