@@ -222,7 +222,7 @@ jobs:
         run: |
           cat ~/.condarc
           grep "channel_priority: flexible" ~/.condarc
-          micromamba list | grep -qE '3\.8.+python.+pkgs/main'
+          micromamba list | grep -qE '3\.8.+python' | grep -qv conda-forge
 
   test_condarc_file:
     name: Test condarc-file
