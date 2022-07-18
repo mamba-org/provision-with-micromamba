@@ -305,7 +305,7 @@ async function createOrUpdateEnv (envName, envFilePath, extraSpecs, logLevel) {
   const action = fs.existsSync(envFolder) ? 'update' : 'create'
   const selectedExtraSpecs = selectSelectors(extraSpecs)
   core.info(`${action} env ${envName}`)
-  let cmd = micromambaCmd(`${action} -n ${envName} --strict-channel-priority -y`, logLevel, PATHS.micromambaExe)
+  let cmd = micromambaCmd(`${action} -n ${envName} -y`, logLevel, PATHS.micromambaExe)
   if (selectedExtraSpecs.length) {
     cmd += ' ' + selectedExtraSpecs.map(e => `"${e}"`).join(' ')
   }
@@ -386,7 +386,6 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
   const autoactivateCmd = `micromamba activate ${envName};`
   if (process.platform === 'win32') {
     const ps1File = (await executePwsh('echo $profile')).stdout.trim()
-    core.warning(path.dirname(ps1File))
     fs.appendFileSync(ps1File, '\n' + autoactivateCmd)
     dumpFileContents(ps1File)
   }
