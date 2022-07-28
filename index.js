@@ -284,7 +284,9 @@ async function installMicromamba (inputs) {
 
 function isSelected (item) {
   if (/sel\(.*\):.*/gi.test(item)) {
-    const condaPlatform = getCondaArch().split('-')[0]
+    let condaPlatform = getCondaArch().split('-')[0]
+    if (["linux", "osx"].includes(condaPlatform))
+      condaPlatform += '|unix';
     return new RegExp(`sel\\(${condaPlatform}\\):.*`, 'gi').test(item)
   }
   return true
