@@ -11,7 +11,7 @@ inputs:
       Path to the `environment.yml` or `.lock` file for the Conda environment OR `false`.
       If `false`, only *extra-specs* will be considered and you should provide *channels*.
       If both *environment-file* and *extra-specs* are empty,
-      no enviroment will be created (only `micromamba` will be installed).
+      no environment will be created (only `micromamba` will be installed).
       See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file)
       for more information.
     required: true
@@ -119,7 +119,7 @@ inputs:
   #     no environment is activated by default (For `base` activation see the
   #     `auto-activate-base` option). If the environment does not exist, it will
   #     be created and activated. If `environment-file` is used and you want that
-  #     to be the environment used, you need to explicitely provide the name of
+  #     to be the environment used, you need to explicitly provide the name of
   #     that environment on `activate-environment`. If using sh/bash/cmd.exe
   #     shells please read the IMPORTANT! section on the README.md! to properly
   #     activate conda environments on these shells."
@@ -200,7 +200,7 @@ inputs:
   #   default: ""
   # remove-profiles:
   #   description:
-  #     'Advanced. Prior to runnning "conda init" all shell profiles will be
+  #     'Advanced. Prior to running "conda init" all shell profiles will be
   #     removed from the runner. Default is "true".'
   #   required: false
   #   default: "true"

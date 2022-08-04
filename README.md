@@ -15,7 +15,7 @@ They are preinstalled in the default GitHub Actions environments.
 
 ### `environment-file`
 
-Required. Path to the `environment.yml` or `.lock` file for the Conda environment OR `false`. If `false`, only *extra-specs* will be considered and you should provide *channels*. If both *environment-file* and *extra-specs* are empty, no enviroment will be created (only `micromamba` will be installed). See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file) for more information.
+Required. Path to the `environment.yml` or `.lock` file for the Conda environment OR `false`. If `false`, only *extra-specs* will be considered and you should provide *channels*. If both *environment-file* and *extra-specs* are empty, no environment will be created (only `micromamba` will be installed). See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file) for more information.
 
 Default value: `environment.yml`
 
@@ -231,7 +231,7 @@ jobs:
 Find the reasons below (taken from [setup-miniconda](https://github.com/conda-incubator/setup-miniconda/blob/master/README.md#important)):
 
 - Bash shells do not use `~/.profile` or `~/.bashrc` so these shells need to be
-  explicitely declared as `shell: bash -l {0}` on steps that need to be properly
+  explicitly declared as `shell: bash -l {0}` on steps that need to be properly
   activated (or use a default shell). This is because bash shells are executed
   with `bash --noprofile --norc -eo pipefail {0}` thus ignoring updated on bash
   profile files made by `conda init bash`. See
@@ -239,7 +239,7 @@ Find the reasons below (taken from [setup-miniconda](https://github.com/conda-in
   and
   [thread](https://github.community/t5/GitHub-Actions/How-to-share-shell-profile-between-steps-or-how-to-use-nvm-rvm/td-p/33185).
 - Cmd shells do not run `Autorun` commands so these shells need to be
-  explicitely declared as `shell: cmd /C call {0}` on steps that need to be
+  explicitly declared as `shell: cmd /C call {0}` on steps that need to be
   properly activated (or use a default shell). This is because cmd shells are
   executed with `%ComSpec% /D /E:ON /V:OFF /S /C "CALL "{0}""` and the `/D` flag
   disabled execution of `Command Processor/Autorun` Windows registry keys, which
