@@ -2,7 +2,7 @@
 
 [![test](https://github.com/mamba-org/provision-with-micromamba/workflows/test/badge.svg)](https://github.com/mamba-org/provision-with-micromamba/actions?query=workflow%3Atest)
 
-GitHub Action to provision a CI instance using micromamba.
+GitHub Action to provision a CI instance using [micromamba](https://github.com/mamba-org/mamba#micromamba).
 
 ## Dependencies
 
@@ -15,19 +15,19 @@ They are preinstalled in the default GitHub Actions environments.
 
 ### `environment-file`
 
-Required. The 'environment.yml' or '.lock' file for the Conda environment. If 'false', only `extra-specs` will be considered and you should provide 'channels'. If both 'environment-file' and 'extra-specs' are empty, no enviroment will be created (only Micromamba will be installed). See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file) for more information.
+Required. Path to the `environment.yml` or `.lock` file for the Conda environment OR `false`. If `false`, only *extra-specs* will be considered and you should provide *channels*. If both *environment-file* and *extra-specs* are empty, no environment will be created (only `micromamba` will be installed). See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file) for more information.
 
-Default value: "environment.yml"
+Default value: `environment.yml`
 
 ### `environment-name`
 
-The name of the Conda environment. Defaults to name from the environment.yml file. Required if 'environment-file' is a '.lock' file or 'false'.
+The name of the Conda environment. Defaults to name from the `environment.yml` file set with *environment-file*. Required if *environment-file* is a `.lock` file or `false`, [unless](https://github.com/mamba-org/provision-with-micromamba/issues/54) both *environment-file* and *extra-specs* are empty.
 
 ### `micromamba-version`
 
-Version of micromamba to use, eg. '0.20'. See https://github.com/mamba-org/mamba/releases/ for a list of releases.
+Version of micromamba to use, eg. `"0.20"`. See <https://github.com/mamba-org/mamba/releases/> for a list of releases.
 
-Default value: "latest"
+Default value: `latest`
 
 ### `extra-specs`
 
@@ -54,37 +54,37 @@ Path to a `.condarc` file to use. See the [Conda documentation](https://docs.con
 
 ### `channel-priority`
 
-Channel priority to use. One of "strict", "flexible", and "disabled". See https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html#strict-channel-priority for more information.
+Channel priority to use. One of `"strict"`, `"flexible"`, and `"disabled"`. See https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html#strict-channel-priority for more information.
 
-Default value: "strict"
+Default value: `strict`
 
 ### `cache-downloads`
 
-If 'true', cache downloaded packages across calls to the provision-with-micromamba action. Cache invalidation can be controlled using the 'cache-downloads-key' option.
+If `true`, cache downloaded packages across calls to the provision-with-micromamba action. Cache invalidation can be controlled using the *cache-downloads-key* option.
 
 ### `cache-downloads-key`
 
-Custom download cache key used with 'cache-downloads: true'. The default download cache key will invalidate the cache once per day.
+Custom download cache key used with `cache-downloads: true`. The default download cache key will invalidate the cache once per day.
 
 ### `cache-env`
 
-If 'true', cache installed environments across calls to the provision-with-micromamba action. Cache invalidation can be controlled using the 'cache-env-key' option.
+If `true`, cache installed environments across calls to the provision-with-micromamba action. Cache invalidation can be controlled using the *cache-env-key* option.
 
 ### `cache-env-key`
 
-Custom environment cache key used with 'cache-env: true'. With the default environment cache key, separate caches will be created for each operating system (eg., Linux) and platform (eg., x64) and day (eg., 2022-01-31), and the cache will be invalidated whenever the contents of 'environment-file' or 'extra-specs' change.
+Custom environment cache key used with `cache-env: true`. With the default environment cache key, separate caches will be created for each operating system (eg., Linux) and platform (eg., x64) and day (eg., 2022-01-31), and the cache will be invalidated whenever the contents of *environment-file* or *extra-specs* change.
 
 ### `log-level`
 
-Micromamba log level to use. One of "trace", "debug", "info", "warning", "error", "critical", "off".
+Micromamba log level to use. One of `"trace"`, `"debug"`, `"info"`, `"warning"`, `"error"`, `"critical"`, `"off"`.
 
-Default value: "warning"
+Default value: `warning`
 
 ### `installer-url`
 
-Base URL to fetch Micromamba from. Files will be downloaded from `<base url>/<platform>/<version>`, eg. https://micro.mamba.pm/api/micromamba/linux-64/latest.
+Base URL to fetch Micromamba from. Files will be downloaded from `<base url>/<platform>/<version>`, eg. <https://micro.mamba.pm/api/micromamba/linux-64/latest>.
 
-Default value: "https://micro.mamba.pm/api/micromamba"
+Default value: `https://micro.mamba.pm/api/micromamba`
 
 ### `condarc-options`
 
@@ -95,7 +95,6 @@ condarc-options: |
   proxy_servers:
     http: ...
 ```
-
 
 <!-- end generated -->
 
@@ -232,7 +231,7 @@ jobs:
 Find the reasons below (taken from [setup-miniconda](https://github.com/conda-incubator/setup-miniconda/blob/master/README.md#important)):
 
 - Bash shells do not use `~/.profile` or `~/.bashrc` so these shells need to be
-  explicitely declared as `shell: bash -l {0}` on steps that need to be properly
+  explicitly declared as `shell: bash -l {0}` on steps that need to be properly
   activated (or use a default shell). This is because bash shells are executed
   with `bash --noprofile --norc -eo pipefail {0}` thus ignoring updated on bash
   profile files made by `conda init bash`. See
@@ -240,7 +239,7 @@ Find the reasons below (taken from [setup-miniconda](https://github.com/conda-in
   and
   [thread](https://github.community/t5/GitHub-Actions/How-to-share-shell-profile-between-steps-or-how-to-use-nvm-rvm/td-p/33185).
 - Cmd shells do not run `Autorun` commands so these shells need to be
-  explicitely declared as `shell: cmd /C call {0}` on steps that need to be
+  explicitly declared as `shell: cmd /C call {0}` on steps that need to be
   properly activated (or use a default shell). This is because cmd shells are
   executed with `%ComSpec% /D /E:ON /V:OFF /S /C "CALL "{0}""` and the `/D` flag
   disabled execution of `Command Processor/Autorun` Windows registry keys, which

@@ -10,7 +10,7 @@ function generateInputsDocs (inputs) {
     const input = inputs[inputName]
     markdown += `\n### \`${inputName}\`\n\n${input.description}\n`
     if (input.default) {
-      markdown += `\nDefault value: "${input.default}"\n`
+      markdown += `\nDefault value: \`${input.default}\`\n`
     }
   }
   return markdown

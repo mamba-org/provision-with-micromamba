@@ -8,22 +8,25 @@ inputs:
   environment-file:
     description: >-
       Required.
-      The 'environment.yml' or '.lock' file for the Conda environment.
-      If 'false', only `extra-specs` will be considered and you should provide 'channels'.
-      If both 'environment-file' and 'extra-specs' are empty,
-      no enviroment will be created (only Micromamba will be installed).
+      Path to the `environment.yml` or `.lock` file for the Conda environment OR `false`.
+      If `false`, only *extra-specs* will be considered and you should provide *channels*.
+      If both *environment-file* and *extra-specs* are empty,
+      no environment will be created (only `micromamba` will be installed).
       See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file)
       for more information.
     required: true
     default: environment.yml
   environment-name:
     description: >-
-      The name of the Conda environment. Defaults to name from the environment.yml file.
-      Required if 'environment-file' is a '.lock' file or 'false'.
+      The name of the Conda environment.
+      Defaults to name from the `environment.yml` file set with *environment-file*.
+      Required if *environment-file* is a `.lock` file or `false`,
+      [unless](https://github.com/mamba-org/provision-with-micromamba/issues/54)
+      both *environment-file* and *extra-specs* are empty.
   micromamba-version:
     description: >-
-      Version of micromamba to use, eg. '0.20'.
-      See https://github.com/mamba-org/mamba/releases/ for a list of releases.
+      Version of micromamba to use, eg. `"0.20"`.
+      See <https://github.com/mamba-org/mamba/releases/> for a list of releases.
     required: true
     default: latest
   extra-specs:
@@ -48,7 +51,7 @@ inputs:
       for more information.
   channel-priority:
     description: >-
-      Channel priority to use. One of "strict", "flexible", and "disabled".
+      Channel priority to use. One of `"strict"`, `"flexible"`, and `"disabled"`.
       See https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html#strict-channel-priority
       for more information.
     required: true
@@ -57,26 +60,26 @@ inputs:
   # Caching options
   cache-downloads:
     description: >-
-      If 'true', cache downloaded packages across calls to the provision-with-micromamba action.
-      Cache invalidation can be controlled using the 'cache-downloads-key' option.
+      If `true`, cache downloaded packages across calls to the provision-with-micromamba action.
+      Cache invalidation can be controlled using the *cache-downloads-key* option.
     required: true
     default: false
   cache-downloads-key:
     description: >-
-      Custom download cache key used with 'cache-downloads: true'.
+      Custom download cache key used with `cache-downloads: true`.
       The default download cache key will invalidate the cache once per day.
   cache-env:
     description: >-
-      If 'true', cache installed environments across calls to the provision-with-micromamba action.
-      Cache invalidation can be controlled using the 'cache-env-key' option.
+      If `true`, cache installed environments across calls to the provision-with-micromamba action.
+      Cache invalidation can be controlled using the *cache-env-key* option.
     required: true
     default: false
   cache-env-key:
     description: >-
-      Custom environment cache key used with 'cache-env: true'.
+      Custom environment cache key used with `cache-env: true`.
       With the default environment cache key, separate caches will be created for each
       operating system (eg., Linux) and platform (eg., x64) and day (eg., 2022-01-31),
-      and the cache will be invalidated whenever the contents of 'environment-file' or 'extra-specs' change.
+      and the cache will be invalidated whenever the contents of *environment-file* or *extra-specs* change.
   # cache-env-always-update:
   #   description: >-
   #     (Not implemented)
@@ -89,16 +92,16 @@ inputs:
   log-level:
     description: >-
       Micromamba log level to use.
-      One of "trace", "debug", "info", "warning", "error", "critical", "off".
+      One of `"trace"`, `"debug"`, `"info"`, `"warning"`, `"error"`, `"critical"`, `"off"`.
     default: warning
   installer-url:
     description: >-
       Base URL to fetch Micromamba from. Files will be downloaded from
-      `<base url>/<platform>/<version>`, eg. https://micro.mamba.pm/api/micromamba/linux-64/latest.
+      `<base url>/<platform>/<version>`, eg. <https://micro.mamba.pm/api/micromamba/linux-64/latest>.
     required: true
     default: https://micro.mamba.pm/api/micromamba
   condarc-options:
-    description: |
+    description: |-
       More options to append to `.condarc`. Must be a string of valid YAML:
 
       ```yaml
@@ -116,7 +119,7 @@ inputs:
   #     no environment is activated by default (For `base` activation see the
   #     `auto-activate-base` option). If the environment does not exist, it will
   #     be created and activated. If `environment-file` is used and you want that
-  #     to be the environment used, you need to explicitely provide the name of
+  #     to be the environment used, you need to explicitly provide the name of
   #     that environment on `activate-environment`. If using sh/bash/cmd.exe
   #     shells please read the IMPORTANT! section on the README.md! to properly
   #     activate conda environments on these shells."
@@ -197,7 +200,7 @@ inputs:
   #   default: ""
   # remove-profiles:
   #   description:
-  #     'Advanced. Prior to runnning "conda init" all shell profiles will be
+  #     'Advanced. Prior to running "conda init" all shell profiles will be
   #     removed from the runner. Default is "true".'
   #   required: false
   #   default: "true"
