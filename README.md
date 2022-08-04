@@ -2,7 +2,7 @@
 
 [![test](https://github.com/mamba-org/provision-with-micromamba/workflows/test/badge.svg)](https://github.com/mamba-org/provision-with-micromamba/actions?query=workflow%3Atest)
 
-GitHub Action to provision a CI instance using micromamba.
+GitHub Action to provision a CI instance using [micromamba](https://github.com/mamba-org/mamba#micromamba).
 
 ## Dependencies
 
