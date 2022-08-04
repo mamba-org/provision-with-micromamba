@@ -15,13 +15,13 @@ They are preinstalled in the default GitHub Actions environments.
 
 ### `environment-file`
 
-Required. Path to the `environment.yml` or `.lock` file for the Conda environment OR `false`. If `false`, only `extra-specs` will be considered and you should provide `channels`. If both `environment-file` and `extra-specs` are empty, no enviroment will be created (only `micromamba` will be installed). See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file) for more information.
+Required. Path to the `environment.yml` or `.lock` file for the Conda environment OR `false`. If `false`, only *extra-specs* will be considered and you should provide *channels*. If both *environment-file* and *extra-specs* are empty, no enviroment will be created (only `micromamba` will be installed). See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file) for more information.
 
 Default value: `environment.yml`
 
 ### `environment-name`
 
-The name of the Conda environment. Defaults to name from the `environment.yml` file set with `environment-file`. Required if `environment-file` is a `.lock` file or `false`, [unless](https://github.com/mamba-org/provision-with-micromamba/issues/54) both `environment-file` and `extra-specs` are empty.
+The name of the Conda environment. Defaults to name from the `environment.yml` file set with *environment-file*. Required if *environment-file* is a `.lock` file or `false`, [unless](https://github.com/mamba-org/provision-with-micromamba/issues/54) both *environment-file* and *extra-specs* are empty.
 
 ### `micromamba-version`
 
@@ -60,7 +60,7 @@ Default value: `strict`
 
 ### `cache-downloads`
 
-If `true`, cache downloaded packages across calls to the provision-with-micromamba action. Cache invalidation can be controlled using the `cache-downloads-key` option.
+If `true`, cache downloaded packages across calls to the provision-with-micromamba action. Cache invalidation can be controlled using the *cache-downloads-key* option.
 
 ### `cache-downloads-key`
 
@@ -68,11 +68,11 @@ Custom download cache key used with `cache-downloads: true`. The default downloa
 
 ### `cache-env`
 
-If `true`, cache installed environments across calls to the provision-with-micromamba action. Cache invalidation can be controlled using the `cache-env-key` option.
+If `true`, cache installed environments across calls to the provision-with-micromamba action. Cache invalidation can be controlled using the *cache-env-key* option.
 
 ### `cache-env-key`
 
-Custom environment cache key used with `cache-env: true`. With the default environment cache key, separate caches will be created for each operating system (eg., Linux) and platform (eg., x64) and day (eg., 2022-01-31), and the cache will be invalidated whenever the contents of `environment-file` or `extra-specs` change.
+Custom environment cache key used with `cache-env: true`. With the default environment cache key, separate caches will be created for each operating system (eg., Linux) and platform (eg., x64) and day (eg., 2022-01-31), and the cache will be invalidated whenever the contents of *environment-file* or *extra-specs* change.
 
 ### `log-level`
 

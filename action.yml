@@ -9,8 +9,8 @@ inputs:
     description: >-
       Required.
       Path to the `environment.yml` or `.lock` file for the Conda environment OR `false`.
-      If `false`, only `extra-specs` will be considered and you should provide `channels`.
-      If both `environment-file` and `extra-specs` are empty,
+      If `false`, only *extra-specs* will be considered and you should provide *channels*.
+      If both *environment-file* and *extra-specs* are empty,
       no enviroment will be created (only `micromamba` will be installed).
       See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file)
       for more information.
@@ -19,10 +19,10 @@ inputs:
   environment-name:
     description: >-
       The name of the Conda environment.
-      Defaults to name from the `environment.yml` file set with `environment-file`.
-      Required if `environment-file` is a `.lock` file or `false`,
+      Defaults to name from the `environment.yml` file set with *environment-file*.
+      Required if *environment-file* is a `.lock` file or `false`,
       [unless](https://github.com/mamba-org/provision-with-micromamba/issues/54)
-      both `environment-file` and `extra-specs` are empty.
+      both *environment-file* and *extra-specs* are empty.
   micromamba-version:
     description: >-
       Version of micromamba to use, eg. `"0.20"`.
@@ -61,7 +61,7 @@ inputs:
   cache-downloads:
     description: >-
       If `true`, cache downloaded packages across calls to the provision-with-micromamba action.
-      Cache invalidation can be controlled using the `cache-downloads-key` option.
+      Cache invalidation can be controlled using the *cache-downloads-key* option.
     required: true
     default: false
   cache-downloads-key:
@@ -71,7 +71,7 @@ inputs:
   cache-env:
     description: >-
       If `true`, cache installed environments across calls to the provision-with-micromamba action.
-      Cache invalidation can be controlled using the `cache-env-key` option.
+      Cache invalidation can be controlled using the *cache-env-key* option.
     required: true
     default: false
   cache-env-key:
@@ -79,7 +79,7 @@ inputs:
       Custom environment cache key used with `cache-env: true`.
       With the default environment cache key, separate caches will be created for each
       operating system (eg., Linux) and platform (eg., x64) and day (eg., 2022-01-31),
-      and the cache will be invalidated whenever the contents of `environment-file` or `extra-specs` change.
+      and the cache will be invalidated whenever the contents of *environment-file* or *extra-specs* change.
   # cache-env-always-update:
   #   description: >-
   #     (Not implemented)
