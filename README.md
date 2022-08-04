@@ -21,7 +21,7 @@ Default value: `environment.yml`
 
 ### `environment-name`
 
-The name of the Conda environment. Defaults to name from the `environment.yml` file. Required if `environment-file` is a `.lock` file or `false`.
+The name of the Conda environment. Defaults to name from the `environment.yml` file set with `environment-file`. Required if `environment-file` is a `.lock` file or `false`, [unless](https://github.com/mamba-org/provision-with-micromamba/issues/54) both `environment-file` and `extra-specs` are empty.
 
 ### `micromamba-version`
 
