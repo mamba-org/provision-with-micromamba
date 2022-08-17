@@ -62664,6 +62664,52 @@ module.exports.implForWrapper = function (wrapper) {
 
 /***/ }),
 
+/***/ 4962:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const os = __nccwpck_require__(2037)
+const path = __nccwpck_require__(1017)
+
+const exec = __nccwpck_require__(1514)
+const core = __nccwpck_require__(2186)
+const io = __nccwpck_require__(7436)
+
+const PATHS = {
+  condarc: path.join(os.homedir(), '.condarc'),
+  bashprofile: path.join(os.homedir(), '.bash_profile'),
+  micromambaBinFolder: path.join(os.homedir(), 'micromamba-bin'),
+  micromambaExe: path.join(os.homedir(), 'micromamba-bin', 'micromamba'),
+  // Without the "-root" suffix it causes problems, why?
+  // xref https://github.com/mamba-org/mamba/issues/1751
+  micromambaRoot: path.join(os.homedir(), 'micromamba-root'),
+  micromambaPkgs: path.join(os.homedir(), 'micromamba-root', 'pkgs'),
+  micromambaEnvs: path.join(os.homedir(), 'micromamba-root', 'envs')
+}
+
+async function executeSubproc (...args) {
+  core.debug(`Running shell command ${JSON.stringify(args)}`)
+  try {
+    return await exec.getExecOutput(...args)
+  } catch (error) {
+    throw Error(`Failed to execute ${JSON.stringify(args)}: ${error}`)
+  }
+}
+
+function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
+  return `${micromambaExe} ${command}` + (logLevel ? ` --log-level ${logLevel}` : '')
+}
+
+async function haveBash () {
+  return !!(await io.which('bash'))
+}
+
+module.exports = {
+  PATHS, executeSubproc, micromambaCmd, haveBash
+}
+
+
+/***/ }),
+
 /***/ 2877:
 /***/ ((module) => {
 
@@ -62940,20 +62986,9 @@ const yaml = __nccwpck_require__(1917)
 
 const cache = __nccwpck_require__(7799)
 const core = __nccwpck_require__(2186)
-const exec = __nccwpck_require__(1514)
 const io = __nccwpck_require__(7436)
 
-const PATHS = {
-  condarc: path.join(os.homedir(), '.condarc'),
-  bashprofile: path.join(os.homedir(), '.bash_profile'),
-  micromambaBinFolder: path.join(os.homedir(), 'micromamba-bin'),
-  micromambaExe: path.join(os.homedir(), 'micromamba-bin', 'micromamba'),
-  // Without the "-root" suffix it causes problems, why?
-  // xref https://github.com/mamba-org/mamba/issues/1751
-  micromambaRoot: path.join(os.homedir(), 'micromamba-root'),
-  micromambaPkgs: path.join(os.homedir(), 'micromamba-root', 'pkgs'),
-  micromambaEnvs: path.join(os.homedir(), 'micromamba-root', 'envs')
-}
+const { PATHS, executeSubproc, micromambaCmd, haveBash } = __nccwpck_require__(4962)
 
 // --- OS utils ---
 
@@ -62964,15 +62999,6 @@ function getInputAsArray (name) {
     .split('\n')
     .map(s => s.trim())
     .filter(x => x !== '')
-}
-
-async function executeSubproc (...args) {
-  core.debug(`Running shell command ${JSON.stringify(args)}`)
-  try {
-    return await exec.getExecOutput(...args)
-  } catch (error) {
-    throw Error(`Failed to execute ${JSON.stringify(args)}: ${error}`)
-  }
 }
 
 async function executeBashFlags (flags, command) {
@@ -63059,10 +63085,6 @@ async function retry (callback, backoffTimes = [2000, 5000, 10000]) {
   }
 }
 
-async function haveBash () {
-  return !!(await io.which('bash'))
-}
-
 function dumpFileContents (path) {
   core.info(`--- Contents of ${path} ---\n${fs.readFileSync(path)}\n--- End contents of ${path} ---`)
 }
@@ -63097,10 +63119,6 @@ function getCondaArch () {
     throw Error(`Platform ${process.platform}/${process.arch} not supported.`)
   }
   return arch
-}
-
-function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
-  return `${micromambaExe} ${command}` + (logLevel ? ` --log-level ${logLevel}` : '')
 }
 
 async function executeMicromambaShellInit (shell, logLevel) {

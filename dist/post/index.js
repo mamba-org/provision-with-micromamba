@@ -58497,6 +58497,52 @@ module.exports.implForWrapper = function (wrapper) {
 
 /***/ }),
 
+/***/ 4962:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const os = __nccwpck_require__(2037)
+const path = __nccwpck_require__(1017)
+
+const exec = __nccwpck_require__(1514)
+const core = __nccwpck_require__(2186)
+const io = __nccwpck_require__(7436)
+
+const PATHS = {
+  condarc: path.join(os.homedir(), '.condarc'),
+  bashprofile: path.join(os.homedir(), '.bash_profile'),
+  micromambaBinFolder: path.join(os.homedir(), 'micromamba-bin'),
+  micromambaExe: path.join(os.homedir(), 'micromamba-bin', 'micromamba'),
+  // Without the "-root" suffix it causes problems, why?
+  // xref https://github.com/mamba-org/mamba/issues/1751
+  micromambaRoot: path.join(os.homedir(), 'micromamba-root'),
+  micromambaPkgs: path.join(os.homedir(), 'micromamba-root', 'pkgs'),
+  micromambaEnvs: path.join(os.homedir(), 'micromamba-root', 'envs')
+}
+
+async function executeSubproc (...args) {
+  core.debug(`Running shell command ${JSON.stringify(args)}`)
+  try {
+    return await exec.getExecOutput(...args)
+  } catch (error) {
+    throw Error(`Failed to execute ${JSON.stringify(args)}: ${error}`)
+  }
+}
+
+function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
+  return `${micromambaExe} ${command}` + (logLevel ? ` --log-level ${logLevel}` : '')
+}
+
+async function haveBash () {
+  return !!(await io.which('bash'))
+}
+
+module.exports = {
+  PATHS, executeSubproc, micromambaCmd, haveBash
+}
+
+
+/***/ }),
+
 /***/ 2877:
 /***/ ((module) => {
 
@@ -58763,6 +58809,8 @@ const fs = __nccwpck_require__(7147)
 const os = __nccwpck_require__(2037)
 const path = __nccwpck_require__(1017)
 
+const { PATHS, executeSubproc, micromambaCmd, haveBash } = __nccwpck_require__(4962)
+
 // From https://github.com/conda-incubator/setup-miniconda (MIT license)
 async function trimPkgsCacheFolder (cacheFolder) {
   const isDir = f => fs.existsSync(f) && fs.lstatSync(f).isDirectory()
@@ -58791,7 +58839,39 @@ async function trimPkgsCacheFolder (cacheFolder) {
   core.endGroup()
 }
 
+async function executeMicromambaShellDeinit (shell, logLevel) {
+  const cmd = micromambaCmd(`shell deinit -s ${shell} -p ${PATHS.micromambaRoot} -y`, logLevel, PATHS.micromambaExe)
+  const cmd2 = cmd.split(' ')
+  return await executeSubproc(cmd2[0], cmd2.slice(1))
+}
+
+const deinitProfile = {
+  darwin: async logLevel => {
+    await executeMicromambaShellDeinit('bash', logLevel)
+    // TODO need to fix a check in micromamba so that this works
+    // https://github.com/mamba-org/mamba/issues/925
+    // await executeMicromambaShellDeinit('zsh', logLevel)
+  },
+  linux: async logLevel => {
+    // On Linux, Micromamba modifies .bashrc but we want the modifications to be in .bash_profile.
+    // The stuff in the .bash_profile is still there...
+    await executeMicromambaShellDeinit('bash', logLevel)
+    await executeMicromambaShellDeinit('zsh', logLevel)
+  },
+  win32: async logLevel => {
+    if (await haveBash()) {
+      await executeMicromambaShellDeinit('bash', logLevel)
+    }
+    // https://github.com/mamba-org/mamba/issues/1756
+    await executeMicromambaShellDeinit('cmd.exe', logLevel)
+    await executeMicromambaShellDeinit('powershell', logLevel)
+  }
+}
+
 async function main () {
+  core.startGroup(`Deinitializing micromamba ...`)
+  await deinitProfile[process.platform](core.getInput('log-level'))
+  core.endGroup()
   if (!core.getState('mainRanSuccessfully')) {
     core.notice('Conda environment setup failed. Cache will not be saved.')
     return
