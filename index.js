@@ -1,5 +1,4 @@
 const fs = require('fs')
-const os = require('os')
 const path = require('path')
 const process = require('process')
 const crypto = require('crypto')
@@ -10,9 +9,7 @@ const cache = require('@actions/cache')
 const core = require('@actions/core')
 const io = require('@actions/io')
 
-const { PATHS, executeSubproc, micromambaCmd, haveBash } = require('./util')
-
-// --- OS utils ---
+const { PATHS, withMkdtemp, executeSubproc, setupProfile, micromambaCmd, haveBash } = require('./util')
 
 function getInputAsArray (name) {
   // From https://github.com/actions/cache/blob/main/src/utils/actionUtils.ts
@@ -22,6 +19,8 @@ function getInputAsArray (name) {
     .map(s => s.trim())
     .filter(x => x !== '')
 }
+
+// --- OS utils ---
 
 async function executeBashFlags (flags, command) {
   return await executeSubproc('bash', ['-eo', 'pipefail', ...flags, '-c', command])
@@ -57,27 +56,6 @@ function sha256 (s) {
 
 function sha256Short (s) {
   return sha256(s).substr(0, 8)
-}
-
-function rmRf (dir) {
-  try {
-    fs.rmSync(dir, { recursive: true })
-  } catch (e) {
-    core.warning(`Error removing directory ${dir}: ${e}`)
-  }
-}
-
-async function withMkdtemp (callback) {
-  const tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), 'micromamba-'))
-  let res
-  try {
-    res = await callback(tmpdir)
-  } catch (e) {
-    rmRf(tmpdir)
-    throw e
-  }
-  rmRf(tmpdir)
-  return res
 }
 
 function today () {
@@ -143,41 +121,7 @@ function getCondaArch () {
   return arch
 }
 
-async function executeMicromambaShellInit (shell, logLevel) {
-  const cmd = micromambaCmd(`shell init -s ${shell} -p ${PATHS.micromambaRoot} -y`, logLevel, PATHS.micromambaExe)
-  const cmd2 = cmd.split(' ')
-  return await executeSubproc(cmd2[0], cmd2.slice(1))
-}
-
 // --- Micromamba download + installation ---
-
-const setupProfile = {
-  darwin: async logLevel => {
-    await executeMicromambaShellInit('bash', logLevel)
-    // TODO need to fix a check in micromamba so that this works
-    // https://github.com/mamba-org/mamba/issues/925
-    // await executeMicromambaShellInit('zsh', logLevel)
-  },
-  linux: async logLevel => {
-    await executeMicromambaShellInit('zsh', logLevel)
-    // On Linux, Micromamba modifies .bashrc but we want the modifications to be in .bash_profile.
-    await withMkdtemp(async tmpdir => {
-      const oldHome = process.env.HOME
-      process.env.HOME = tmpdir
-      await executeMicromambaShellInit('bash', logLevel)
-      process.env.HOME = oldHome
-      fs.appendFileSync(PATHS.bashprofile, '\n' + fs.readFileSync(path.join(tmpdir, '.bashrc')))
-    })
-  },
-  win32: async logLevel => {
-    if (await haveBash()) {
-      await executeMicromambaShellInit('bash', logLevel)
-    }
-    // https://github.com/mamba-org/mamba/issues/1756
-    await executeMicromambaShellInit('cmd.exe', logLevel)
-    await executeMicromambaShellInit('powershell', logLevel)
-  }
-}
 
 async function downloadMicromamba (micromambaUrl) {
   fs.mkdirSync(PATHS.micromambaBinFolder)
@@ -244,7 +188,7 @@ async function installMicromamba (inputs) {
       await downloadMicromamba(micromambaUrl)
       saveCacheOnPost(...cacheArgs)
     }
-    await setupProfile[process.platform](inputs.logLevel)
+    await setupProfile('init', process.platform, inputs.logLevel)
     core.exportVariable('MAMBA_ROOT_PREFIX', PATHS.micromambaRoot)
     core.exportVariable('MAMBA_EXE', PATHS.micromambaExe)
     core.addPath(PATHS.micromambaBinFolder)
@@ -388,6 +332,8 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
 // --- Main ---
 
 async function main () {
+  // Using getInput is not safe in a post action for templated inputs. 
+  // Therefore, we need to save the input values beforehand to the state.
   const inputs = {
     // Basic options
     envFile: core.getInput('environment-file'),
@@ -410,8 +356,10 @@ async function main () {
     // Advanced options
     logLevel: core.getInput('log-level'),
     condaRcOptions: core.getInput('condarc-options'),
-    installerUrl: core.getInput('installer-url')
+    installerUrl: core.getInput('installer-url'),
+    postDeinit: core.getInput('post-deinit')
   }
+  core.saveState('inputs', JSON.stringify(inputs))
 
   // Read environment file
   let envFilePath, envYaml

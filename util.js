@@ -1,3 +1,4 @@
+const fs = require('fs')
 const os = require('os')
 const path = require('path')
 
@@ -17,6 +18,27 @@ const PATHS = {
   micromambaEnvs: path.join(os.homedir(), 'micromamba-root', 'envs')
 }
 
+function rmRf (dir) {
+  try {
+    fs.rmSync(dir, { recursive: true })
+  } catch (e) {
+    core.warning(`Error removing directory ${dir}: ${e}`)
+  }
+}
+
+async function withMkdtemp (callback) {
+  const tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), 'micromamba-'))
+  let res
+  try {
+    res = await callback(tmpdir)
+  } catch (e) {
+    rmRf(tmpdir)
+    throw e
+  }
+  rmRf(tmpdir)
+  return res
+}
+
 async function executeSubproc (...args) {
   core.debug(`Running shell command ${JSON.stringify(args)}`)
   try {
@@ -26,8 +48,48 @@ async function executeSubproc (...args) {
   }
 }
 
+async function executeMicromambaShell (command, shell, logLevel) {
+  const cmd = micromambaCmd(`shell ${command} -s ${shell} -p ${PATHS.micromambaRoot} -y`, logLevel, PATHS.micromambaExe)
+  const cmd2 = cmd.split(' ')
+  return await executeSubproc(cmd2[0], cmd2.slice(1))
+}
+
 function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
   return `${micromambaExe} ${command}` + (logLevel ? ` --log-level ${logLevel}` : '')
+}
+
+async function setupProfile (command, os, logLevel) {
+  switch (os) {
+    case 'darwin': 
+      await executeMicromambaShell(command, 'bash', logLevel)
+      // TODO need to fix a check in micromamba so that this works
+      // https://github.com/mamba-org/mamba/issues/925
+      // await executeMicromambaShell(command, 'zsh', logLevel)
+      break;
+    case 'linux':
+      await executeMicromambaShell(command, 'zsh', logLevel)
+      // On Linux, Micromamba modifies .bashrc but we want the modifications to be in .bash_profile.
+      if (command == 'init') {
+        await withMkdtemp(async tmpdir => {
+          const oldHome = process.env.HOME
+          process.env.HOME = tmpdir
+          await executeMicromambaShell('init', 'bash', logLevel)
+          process.env.HOME = oldHome
+          fs.appendFileSync(PATHS.bashprofile, '\n' + fs.readFileSync(path.join(tmpdir, '.bashrc')))
+        })
+      } else {
+        await executeMicromambaShell('deinit', 'bash', logLevel)
+      }
+      break;
+    case 'win32':
+      if (await haveBash()) {
+        await executeMicromambaShell('init', 'bash', logLevel)
+      }
+      // https://github.com/mamba-org/mamba/issues/1756
+      await executeMicromambaShell('init', 'cmd.exe', logLevel)
+      await executeMicromambaShell('init', 'powershell', logLevel)
+      break;
+  }
 }
 
 async function haveBash () {
@@ -35,5 +97,5 @@ async function haveBash () {
 }
 
 module.exports = {
-  PATHS, executeSubproc, micromambaCmd, haveBash
+  PATHS, withMkdtemp, executeSubproc, executeMicromambaShell, micromambaCmd, setupProfile, haveBash
 }

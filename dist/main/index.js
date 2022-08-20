@@ -62667,6 +62667,7 @@ module.exports.implForWrapper = function (wrapper) {
 /***/ 4962:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
+const fs = __nccwpck_require__(7147)
 const os = __nccwpck_require__(2037)
 const path = __nccwpck_require__(1017)
 
@@ -62686,6 +62687,27 @@ const PATHS = {
   micromambaEnvs: path.join(os.homedir(), 'micromamba-root', 'envs')
 }
 
+function rmRf (dir) {
+  try {
+    fs.rmSync(dir, { recursive: true })
+  } catch (e) {
+    core.warning(`Error removing directory ${dir}: ${e}`)
+  }
+}
+
+async function withMkdtemp (callback) {
+  const tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), 'micromamba-'))
+  let res
+  try {
+    res = await callback(tmpdir)
+  } catch (e) {
+    rmRf(tmpdir)
+    throw e
+  }
+  rmRf(tmpdir)
+  return res
+}
+
 async function executeSubproc (...args) {
   core.debug(`Running shell command ${JSON.stringify(args)}`)
   try {
@@ -62695,8 +62717,48 @@ async function executeSubproc (...args) {
   }
 }
 
+async function executeMicromambaShell (command, shell, logLevel) {
+  const cmd = micromambaCmd(`shell ${command} -s ${shell} -p ${PATHS.micromambaRoot} -y`, logLevel, PATHS.micromambaExe)
+  const cmd2 = cmd.split(' ')
+  return await executeSubproc(cmd2[0], cmd2.slice(1))
+}
+
 function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
   return `${micromambaExe} ${command}` + (logLevel ? ` --log-level ${logLevel}` : '')
+}
+
+async function setupProfile (command, os, logLevel) {
+  switch (os) {
+    case 'darwin': 
+      await executeMicromambaShell(command, 'bash', logLevel)
+      // TODO need to fix a check in micromamba so that this works
+      // https://github.com/mamba-org/mamba/issues/925
+      // await executeMicromambaShell(command, 'zsh', logLevel)
+      break;
+    case 'linux':
+      await executeMicromambaShell(command, 'zsh', logLevel)
+      // On Linux, Micromamba modifies .bashrc but we want the modifications to be in .bash_profile.
+      if (command == 'init') {
+        await withMkdtemp(async tmpdir => {
+          const oldHome = process.env.HOME
+          process.env.HOME = tmpdir
+          await executeMicromambaShell('init', 'bash', logLevel)
+          process.env.HOME = oldHome
+          fs.appendFileSync(PATHS.bashprofile, '\n' + fs.readFileSync(path.join(tmpdir, '.bashrc')))
+        })
+      } else {
+        await executeMicromambaShell('deinit', 'bash', logLevel)
+      }
+      break;
+    case 'win32':
+      if (await haveBash()) {
+        await executeMicromambaShell('init', 'bash', logLevel)
+      }
+      // https://github.com/mamba-org/mamba/issues/1756
+      await executeMicromambaShell('init', 'cmd.exe', logLevel)
+      await executeMicromambaShell('init', 'powershell', logLevel)
+      break;
+  }
 }
 
 async function haveBash () {
@@ -62704,7 +62766,7 @@ async function haveBash () {
 }
 
 module.exports = {
-  PATHS, executeSubproc, micromambaCmd, haveBash
+  PATHS, withMkdtemp, executeSubproc, executeMicromambaShell, micromambaCmd, setupProfile, haveBash
 }
 
 
@@ -62977,7 +63039,6 @@ __nccwpck_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
 const fs = __nccwpck_require__(7147)
-const os = __nccwpck_require__(2037)
 const path = __nccwpck_require__(1017)
 const process = __nccwpck_require__(7282)
 const crypto = __nccwpck_require__(6113)
@@ -62988,9 +63049,7 @@ const cache = __nccwpck_require__(7799)
 const core = __nccwpck_require__(2186)
 const io = __nccwpck_require__(7436)
 
-const { PATHS, executeSubproc, micromambaCmd, haveBash } = __nccwpck_require__(4962)
-
-// --- OS utils ---
+const { PATHS, withMkdtemp, executeSubproc, setupProfile, micromambaCmd, haveBash } = __nccwpck_require__(4962)
 
 function getInputAsArray (name) {
   // From https://github.com/actions/cache/blob/main/src/utils/actionUtils.ts
@@ -63000,6 +63059,8 @@ function getInputAsArray (name) {
     .map(s => s.trim())
     .filter(x => x !== '')
 }
+
+// --- OS utils ---
 
 async function executeBashFlags (flags, command) {
   return await executeSubproc('bash', ['-eo', 'pipefail', ...flags, '-c', command])
@@ -63035,27 +63096,6 @@ function sha256 (s) {
 
 function sha256Short (s) {
   return sha256(s).substr(0, 8)
-}
-
-function rmRf (dir) {
-  try {
-    fs.rmSync(dir, { recursive: true })
-  } catch (e) {
-    core.warning(`Error removing directory ${dir}: ${e}`)
-  }
-}
-
-async function withMkdtemp (callback) {
-  const tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), 'micromamba-'))
-  let res
-  try {
-    res = await callback(tmpdir)
-  } catch (e) {
-    rmRf(tmpdir)
-    throw e
-  }
-  rmRf(tmpdir)
-  return res
 }
 
 function today () {
@@ -63121,41 +63161,7 @@ function getCondaArch () {
   return arch
 }
 
-async function executeMicromambaShellInit (shell, logLevel) {
-  const cmd = micromambaCmd(`shell init -s ${shell} -p ${PATHS.micromambaRoot} -y`, logLevel, PATHS.micromambaExe)
-  const cmd2 = cmd.split(' ')
-  return await executeSubproc(cmd2[0], cmd2.slice(1))
-}
-
 // --- Micromamba download + installation ---
-
-const setupProfile = {
-  darwin: async logLevel => {
-    await executeMicromambaShellInit('bash', logLevel)
-    // TODO need to fix a check in micromamba so that this works
-    // https://github.com/mamba-org/mamba/issues/925
-    // await executeMicromambaShellInit('zsh', logLevel)
-  },
-  linux: async logLevel => {
-    await executeMicromambaShellInit('zsh', logLevel)
-    // On Linux, Micromamba modifies .bashrc but we want the modifications to be in .bash_profile.
-    await withMkdtemp(async tmpdir => {
-      const oldHome = process.env.HOME
-      process.env.HOME = tmpdir
-      await executeMicromambaShellInit('bash', logLevel)
-      process.env.HOME = oldHome
-      fs.appendFileSync(PATHS.bashprofile, '\n' + fs.readFileSync(path.join(tmpdir, '.bashrc')))
-    })
-  },
-  win32: async logLevel => {
-    if (await haveBash()) {
-      await executeMicromambaShellInit('bash', logLevel)
-    }
-    // https://github.com/mamba-org/mamba/issues/1756
-    await executeMicromambaShellInit('cmd.exe', logLevel)
-    await executeMicromambaShellInit('powershell', logLevel)
-  }
-}
 
 async function downloadMicromamba (micromambaUrl) {
   fs.mkdirSync(PATHS.micromambaBinFolder)
@@ -63222,7 +63228,7 @@ async function installMicromamba (inputs) {
       await downloadMicromamba(micromambaUrl)
       saveCacheOnPost(...cacheArgs)
     }
-    await setupProfile[process.platform](inputs.logLevel)
+    await setupProfile('init', process.platform, inputs.logLevel)
     core.exportVariable('MAMBA_ROOT_PREFIX', PATHS.micromambaRoot)
     core.exportVariable('MAMBA_EXE', PATHS.micromambaExe)
     core.addPath(PATHS.micromambaBinFolder)
@@ -63366,6 +63372,8 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
 // --- Main ---
 
 async function main () {
+  // Using getInput is not safe in a post action for templated inputs. 
+  // Therefore, we need to save the input values beforehand to the state.
   const inputs = {
     // Basic options
     envFile: core.getInput('environment-file'),
@@ -63388,8 +63396,10 @@ async function main () {
     // Advanced options
     logLevel: core.getInput('log-level'),
     condaRcOptions: core.getInput('condarc-options'),
-    installerUrl: core.getInput('installer-url')
+    installerUrl: core.getInput('installer-url'),
+    postDeinit: core.getInput('post-deinit')
   }
+  core.saveState('inputs', JSON.stringify(inputs))
 
   // Read environment file
   let envFilePath, envYaml

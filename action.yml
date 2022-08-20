@@ -109,6 +109,14 @@ inputs:
         proxy_servers:
           http: ...
       ```
+  post-deinit:
+    description: |-
+      Deinitialize micromamba in the post action of the workflow.
+      One of `auto`, `true` or `false`.
+      If set to `auto`, micromamba will be deinitialized if it supports `micromamba deinit` (i.e. `micromamba>=0.25.0`)
+      This is useful for self-hosted runners that keep the state of the system.
+    required: true
+    default: auto
 
   # setup-miniconda options that are not (yet) supported:
   #

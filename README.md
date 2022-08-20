@@ -96,6 +96,15 @@ condarc-options: |
     http: ...
 ```
 
+### `post-deinit`
+
+Deinitialize micromamba in the post action of the workflow.
+One of `auto`, `true` or `false`.
+If set to `auto`, micromamba will be deinitialized if it supports `micromamba deinit` (i.e. `micromamba>=0.25.0`)
+This is useful for self-hosted runners that keep the state of the system.
+
+Default value: `auto`
+
 <!-- end generated -->
 
 ## Example usage
