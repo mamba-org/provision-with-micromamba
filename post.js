@@ -36,7 +36,7 @@ async function trimPkgsCacheFolder (cacheFolder) {
   core.endGroup()
 }
 
-async function useDeinit (inputs) {
+function useDeinit (inputs) {
   // debug output values
   core.debug(`inputs.postDeinit: ${inputs.postDeinit}`)
   core.debug(`inputs.micromambaVersion: ${inputs.micromambaVersion}`)
@@ -47,7 +47,7 @@ async function useDeinit (inputs) {
 async function main () {
   const inputs = JSON.parse(core.getState('inputs'))
 
-  if (await useDeinit(inputs)) {
+  if (useDeinit(inputs)) {
     core.startGroup(`Deinitializing micromamba ...`)
     await setupProfile('deinit', process.platform, inputs.logLevel)
     core.endGroup()
