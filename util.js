@@ -70,7 +70,13 @@ async function setupProfile (command, os, logLevel) {
           fs.appendFileSync(PATHS.bashprofile, '\n' + fs.readFileSync(path.join(tmpdir, '.bashrc')))
         })
       } else {
+        // we still need to deinit for the regular .bashrc since `micromamba shell init` also changes other files, not only .bashrc
         await executeMicromambaShell(command, 'bash', logLevel)
+        // remove mamba initialize block from .bash_profile
+        const regexBlock = "\n# >>> mamba initialize >>>(?:\n|\r\n)?([\\s\\S]*?)# <<< mamba initialize <<<(?:\n|\r\n)?"
+        const bashProfile = fs.readFileSync(PATHS.bashprofile, 'utf8')
+        const newBashProfile = bashProfile.replace(new RegExp(regexBlock, 'g'), '')
+        fs.writeFileSync(PATHS.bashprofile, newBashProfile)
       }
       break;
     case 'win32':
