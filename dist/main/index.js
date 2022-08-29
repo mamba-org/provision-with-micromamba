@@ -63341,24 +63341,16 @@ const PATHS = {
   micromambaEnvs: path.join(os.homedir(), 'micromamba-root', 'envs')
 }
 
-function rmRf (dir) {
-  try {
-    fs.rmSync(dir, { recursive: true })
-  } catch (e) {
-    core.warning(`Error removing directory ${dir}: ${e}`)
-  }
-}
-
 async function withMkdtemp (callback) {
   const tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), 'micromamba-'))
   let res
   try {
     res = await callback(tmpdir)
   } catch (e) {
-    rmRf(tmpdir)
+    io.rmRF(tmpdir)
     throw e
   }
-  rmRf(tmpdir)
+  io.rmRF(tmpdir)
   return res
 }
 
@@ -63396,21 +63388,21 @@ async function setupProfile (command, os, logLevel) {
         await withMkdtemp(async tmpdir => {
           const oldHome = process.env.HOME
           process.env.HOME = tmpdir
-          await executeMicromambaShell('init', 'bash', logLevel)
+          await executeMicromambaShell(command, 'bash', logLevel)
           process.env.HOME = oldHome
           fs.appendFileSync(PATHS.bashprofile, '\n' + fs.readFileSync(path.join(tmpdir, '.bashrc')))
         })
       } else {
-        await executeMicromambaShell('deinit', 'bash', logLevel)
+        await executeMicromambaShell(command, 'bash', logLevel)
       }
       break;
     case 'win32':
       if (await haveBash()) {
-        await executeMicromambaShell('init', 'bash', logLevel)
+        await executeMicromambaShell(command, 'bash', logLevel)
       }
       // https://github.com/mamba-org/mamba/issues/1756
-      await executeMicromambaShell('init', 'cmd.exe', logLevel)
-      await executeMicromambaShell('init', 'powershell', logLevel)
+      await executeMicromambaShell(command, 'cmd.exe', logLevel)
+      await executeMicromambaShell(command, 'powershell', logLevel)
       break;
   }
 }
