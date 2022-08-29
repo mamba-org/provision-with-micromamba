@@ -58571,7 +58571,7 @@ async function setupProfile (command, os, logLevel) {
     case 'linux':
       await executeMicromambaShell(command, 'zsh', logLevel)
       // On Linux, Micromamba modifies .bashrc but we want the modifications to be in .bash_profile.
-      if (command == 'init') {
+      if (command === 'init') {
         await withMkdtemp(async tmpdir => {
           const oldHome = process.env.HOME
           process.env.HOME = tmpdir
@@ -58906,7 +58906,7 @@ function useDeinit (inputs) {
   core.debug(`inputs.postDeinit: ${inputs.postDeinit}`)
   core.debug(`inputs.micromambaVersion: ${inputs.micromambaVersion}`)
   // since 'latest' >= '0.25.0', this works for all expected values
-  return (inputs.postDeinit == 'auto' && inputs.micromambaVersion >= '0.25.0') || inputs.postDeinit == 'true'
+  return (inputs.postDeinit === 'auto' && inputs.micromambaVersion >= '0.25.0') || inputs.postDeinit === 'true'
 }
 
 async function main () {

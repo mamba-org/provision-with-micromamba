@@ -41,7 +41,7 @@ function useDeinit (inputs) {
   core.debug(`inputs.postDeinit: ${inputs.postDeinit}`)
   core.debug(`inputs.micromambaVersion: ${inputs.micromambaVersion}`)
   // since 'latest' >= '0.25.0', this works for all expected values
-  return (inputs.postDeinit == 'auto' && inputs.micromambaVersion >= '0.25.0') || inputs.postDeinit == 'true'
+  return (inputs.postDeinit === 'auto' && inputs.micromambaVersion >= '0.25.0') || inputs.postDeinit === 'true'
 }
 
 async function main () {

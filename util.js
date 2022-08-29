@@ -69,7 +69,7 @@ async function setupProfile (command, os, logLevel) {
     case 'linux':
       await executeMicromambaShell(command, 'zsh', logLevel)
       // On Linux, Micromamba modifies .bashrc but we want the modifications to be in .bash_profile.
-      if (command == 'init') {
+      if (command === 'init') {
         await withMkdtemp(async tmpdir => {
           const oldHome = process.env.HOME
           process.env.HOME = tmpdir
