@@ -41,6 +41,8 @@ jobs:
         with: 
           environment-file: false
 
+      - run: grep -F "mamba initialize" ${{ matrix.rcfile }}
+
   test_deinit_false:
     name: Test deinit false - ${{ matrix.os }} ${{ matrix.rcfile }}
     runs-on: ${{ matrix.os }}
@@ -70,6 +72,8 @@ jobs:
         with: 
           environment-file: false
           post-deinit: false
+
+      - run: grep -F "mamba initialize" ${{ matrix.rcfile }}
   
   test_deinit_auto_old_micromamba:
     name: Test deinit auto old micromamba - ${{ matrix.os }} ${{ matrix.rcfile }}
@@ -100,3 +104,5 @@ jobs:
         with: 
           environment-file: false
           micromamba-version: "0.23.0"
+
+      - run: grep -F "mamba initialize" ${{ matrix.rcfile }}
