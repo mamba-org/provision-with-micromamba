@@ -1,10 +1,12 @@
+const fs = require('fs')
+const os = require('os')
+const path = require('path')
+
 const cache = require('@actions/cache')
 const core = require('@actions/core')
 const io = require('@actions/io')
 
-const fs = require('fs')
-const os = require('os')
-const path = require('path')
+const { setupProfile } = require('./util')
 
 // From https://github.com/conda-incubator/setup-miniconda (MIT license)
 async function trimPkgsCacheFolder (cacheFolder) {
@@ -34,7 +36,22 @@ async function trimPkgsCacheFolder (cacheFolder) {
   core.endGroup()
 }
 
+function useDeinit (inputs) {
+  // debug output values
+  core.debug(`inputs.postDeinit: ${inputs.postDeinit}`)
+  core.debug(`inputs.micromambaVersion: ${inputs.micromambaVersion}`)
+  // since 'latest' >= '0.25.0', this works for all expected values
+  return (inputs.postDeinit === 'auto' && inputs.micromambaVersion >= '0.25.0') || inputs.postDeinit === 'true'
+}
+
 async function main () {
+  const inputs = JSON.parse(core.getState('inputs'))
+
+  if (useDeinit(inputs)) {
+    core.startGroup(`Deinitializing micromamba ...`)
+    await setupProfile('deinit', process.platform, inputs.logLevel)
+    core.endGroup()
+  }
   if (!core.getState('mainRanSuccessfully')) {
     core.notice('Conda environment setup failed. Cache will not be saved.')
     return

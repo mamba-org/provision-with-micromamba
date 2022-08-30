@@ -96,6 +96,15 @@ condarc-options: |
     http: ...
 ```
 
+### `post-deinit`
+
+Attempt to undo any modifications done to `.bashrc` etc. in the post action of the workflow.
+This is useful for self-hosted runners that keep the state of the system.
+One of `"auto"`, `"true"` or `"false"`.
+If set to `"auto"`, behaves like `"true"` if the micromamba version used supports `micromamba shell deinit` (i.e. `micromamba>=0.25.0`).
+
+Default value: `auto`
+
 <!-- end generated -->
 
 ## Example usage

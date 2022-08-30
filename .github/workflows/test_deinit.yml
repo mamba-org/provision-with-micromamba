@@ -1,0 +1,108 @@
+name: Test deinit
+
+on:
+  push:
+    branches:
+      - main
+  pull_request: null
+
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test_deinit:
+    name: Test deinit - ${{ matrix.os }} ${{ matrix.rcfile }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # .bash_profile gets initialized in p-w-m ubuntu-latest instead of .bashrc like in micromamba
+          - { os: ubuntu-latest, rcfile: ~/.bash_profile }
+          - { os: ubuntu-latest, rcfile: ~/.zshrc }
+          # TODO zshrc not yet initialized in macos p-w-m
+          # https://github.com/mamba-org/mamba/issues/925
+          - { os: macos-latest, rcfile: ~/.bash_profile }
+          - { os: windows-latest, rcfile: ~/.bash_profile }
+          - { os: windows-latest, rcfile: ~/Documents/WindowsPowerShell/profile.ps1 }
+    steps:
+      - uses: actions/checkout@v3
+
+      # This is a fork of webiny/action-post-run. If webiny/action-post-run is updated, this should be updated as well.
+      - uses: lisanna-dettwyler/action-post-run@d053b9b43d788b87a409f6cdb3b6fc87c6c8a4fe
+        with:
+          # assert that mamba initialize is not in rcfile
+          # if the rcfile is not found, the test will still succeed
+          run: |
+            ! grep -F "mamba initialize" ${{ matrix.rcfile }}
+
+      - uses: ./
+        with: 
+          environment-file: false
+
+      - run: grep -F "mamba initialize" ${{ matrix.rcfile }}
+
+  test_deinit_false:
+    name: Test deinit false - ${{ matrix.os }} ${{ matrix.rcfile }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # .bash_profile gets initialized in p-w-m ubuntu-latest instead of .bashrc like in micromamba
+          - { os: ubuntu-latest, rcfile: ~/.bash_profile }
+          - { os: ubuntu-latest, rcfile: ~/.zshrc }
+          # TODO zshrc not yet initialized in macos p-w-m
+          # https://github.com/mamba-org/mamba/issues/925
+          - { os: macos-latest, rcfile: ~/.bash_profile }
+          - { os: windows-latest, rcfile: ~/.bash_profile }
+          - { os: windows-latest, rcfile: ~/Documents/WindowsPowerShell/profile.ps1 }
+    steps:
+      - uses: actions/checkout@v3
+
+      # This is a fork of webiny/action-post-run. If webiny/action-post-run is updated, this should be updated as well.
+      - uses: lisanna-dettwyler/action-post-run@d053b9b43d788b87a409f6cdb3b6fc87c6c8a4fe
+        with:
+          # assert that mamba initialize is in rcfile
+          run: |
+            grep -F "mamba initialize" ${{ matrix.rcfile }}
+
+      - uses: ./
+        with: 
+          environment-file: false
+          post-deinit: false
+
+      - run: grep -F "mamba initialize" ${{ matrix.rcfile }}
+  
+  test_deinit_auto_old_micromamba:
+    name: Test deinit auto old micromamba - ${{ matrix.os }} ${{ matrix.rcfile }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # .bash_profile gets initialized in p-w-m ubuntu-latest instead of .bashrc like in micromamba
+          - { os: ubuntu-latest, rcfile: ~/.bash_profile }
+          - { os: ubuntu-latest, rcfile: ~/.zshrc }
+          # TODO zshrc not yet initialized in macos p-w-m
+          # https://github.com/mamba-org/mamba/issues/925
+          - { os: macos-latest, rcfile: ~/.bash_profile }
+          - { os: windows-latest, rcfile: ~/.bash_profile }
+          - { os: windows-latest, rcfile: ~/Documents/WindowsPowerShell/profile.ps1 }
+    steps:
+      - uses: actions/checkout@v3
+
+      # This is a fork of webiny/action-post-run. If webiny/action-post-run is updated, this should be updated as well.
+      - uses: lisanna-dettwyler/action-post-run@d053b9b43d788b87a409f6cdb3b6fc87c6c8a4fe
+        with:
+          # assert that mamba initialize is in rcfile
+          run: |
+            grep -F "mamba initialize" ${{ matrix.rcfile }}
+
+      - uses: ./
+        with: 
+          environment-file: false
+          micromamba-version: "0.23.0"
+
+      - run: grep -F "mamba initialize" ${{ matrix.rcfile }}
