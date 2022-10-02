@@ -24,7 +24,7 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
         pytest: ["6.1", "6.2"]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: install mamba
         uses: ./
@@ -105,7 +105,7 @@ jobs:
       matrix:
         environment-file: [false, environment.yml]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: install mamba
         uses: ./
@@ -138,7 +138,7 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: install mamba
         uses: ./
@@ -159,7 +159,7 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: install mamba
         uses: ./
@@ -208,7 +208,7 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       
       - name: Modify environemnt.yml to require flexible channel priority
         run: |
@@ -238,7 +238,7 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: create .condarc
         run: |
@@ -265,7 +265,7 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: install mamba
         uses: ./
