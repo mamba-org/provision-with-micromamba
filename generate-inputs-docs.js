@@ -17,7 +17,7 @@ function generateInputsDocs (inputs) {
 }
 
 function main () {
-  const yaml = jsYaml.safeLoad(fs.readFileSync('action.yml'))
+  const yaml = jsYaml.load(fs.readFileSync('action.yml'))
   const inputsDocs = generateInputsDocs(yaml.inputs)
   const oldReadmeContent = fs.readFileSync('README.md').toString()
   const newReadmeContent = oldReadmeContent.replace(
