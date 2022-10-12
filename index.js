@@ -170,7 +170,7 @@ function makeCondarcOpts (inputs, extraChannels) {
     condarcOpts.channels = channels
   }
 
-  const moreOpts = yaml.safeLoad(inputs.condaRcOptions)
+  const moreOpts = yaml.load(inputs.condaRcOptions)
   if (moreOpts) {
     condarcOpts = { ...condarcOpts, ...moreOpts }
   }
@@ -314,7 +314,7 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
 
   // Sanity check
   const { stdout: micromambaInfoJson } = await executeLoginShell(micromambaCmd('info --json'))
-  const autoactivatedEnvLocation = yaml.safeLoad(micromambaInfoJson)['env location']
+  const autoactivatedEnvLocation = yaml.load(micromambaInfoJson)['env location']
   if (autoactivatedEnvLocation === '-') {
     throw Error('Error setting up environment')
   }
@@ -366,7 +366,7 @@ async function main () {
   if (inputs.envFile !== 'false') {
     envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', inputs.envFile)
     if (!envFilePath.endsWith('.lock')) {
-      envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
+      envYaml = yaml.load(fs.readFileSync(envFilePath, 'utf8'))
     }
   }
 
@@ -375,7 +375,7 @@ async function main () {
   if (inputs.condaRcFile) {
     fs.copyFileSync(inputs.condaRcFile, PATHS.condarc)
   }
-  fs.appendFileSync(PATHS.condarc, yaml.safeDump(condarcOpts))
+  fs.appendFileSync(PATHS.condarc, yaml.dump(condarcOpts))
   core.debug(`Contents of ${PATHS.condarc}\n${fs.readFileSync(PATHS.condarc)}`)
 
   await installMicromamba(inputs)

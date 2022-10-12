@@ -21,14 +21,14 @@
   },
   "homepage": "https://github.com/mamba-org/provision-with-micromamba#readme",
   "dependencies": {
-    "@actions/cache": "^3.0.0",
-    "@actions/core": "^1.8.0",
-    "@actions/exec": "^1.1.0",
-    "@actions/io": "^1.1.0",
+    "@actions/cache": "^3.0.4",
+    "@actions/core": "^1.10.0",
+    "@actions/exec": "^1.1.1",
+    "@actions/io": "^1.1.2",
     "@vercel/ncc": "^0.34.0",
     "fs": "^0.0.1-security",
-    "js-yaml": "^3.14.0",
-    "os": "^0.1.1"
+    "js-yaml": "^4.1.0",
+    "os": "^0.1.2"
   },
   "devDependencies": {
     "standard": "^17.0.0"
