@@ -10,73 +10,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: test
-    timeout-minutes: 10
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: install binary only
-        uses: ./
-        with:
-          environment-file: false
-
-      - name: install mamba
-        uses: ./
-
-      - name: run python in powershell
-        shell: powershell
-        run: |
-          which micromamba
-          micromamba info
-          which python
-          python -VV
-          python -c "import numpy"
-          echo "MAMBA_EXE=$Env:MAMBA_EXE"
-          python test/test_path.py
-        if: runner.os == 'Windows'
-
-      - name: run python in cmd.exe
-        shell: cmd /C call {0}
-        run: |
-          where micromamba
-          micromamba info
-          which python
-          python -VV
-          python -c "import numpy"
-          echo "MAMBA_EXE=%MAMBA_EXE%"
-          python test/test_path.py
-        if: runner.os == 'Windows'
-
-      - name: run python in bash
-        shell: bash -l {0}
-        run: |
-          which micromamba
-          micromamba info
-          which python
-          python -VV
-          python -c "import numpy"
-          echo "MAMBA_EXE=$MAMBA_EXE"
-          python test/test_path.py
-
-      # - name: run python in zsh
-      #   shell: zsh -l {0}
-      #   run: |
-      #     which micromamba
-      #     micromamba info
-      #     which python
-      #     python -VV
-      #     python -c "import numpy"
-      #     micromamba activate test
-      #     echo "MAMBA_EXE=$MAMBA_EXE"
-      #     python test/test_path.py
-      #   if: runner.os == 'macOS'
-
   test_bash:
     name: Test bash
     timeout-minutes: 10
@@ -84,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
 
     defaults:
       run:
@@ -93,47 +26,19 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - run: |
+          echo <<EOF
+          channel_alias: https://blah.com/t/${BLAH}/get
+          channels: [conda-forge]
+          custom_multichannels:
+            conda-forge: [https://conda.anaconda.org/conda-forge]
+          EOF
+
       - name: install mamba
         uses: ./
         with:
           environment-file: environment.yml
           environment-name: myenv
 
-      - name: run python
-        run: |
-          python -VV
-          python -c "import numpy"
-          micromamba --help
-
-      - name: test environment name
-        run: |
-          python -c "import os; env = os.path.basename(os.environ['CONDA_PREFIX']); assert env == 'myenv'"
-
-  test_docker:
-    name: test
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    container: ${{ matrix.container }}
-    strategy:
-      fail-fast: false
-      matrix:
-        container: ["ubuntu:latest"]
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Install runtime dependencies
-        run: apt update && apt install -y curl bzip2
-
-      - name: install mamba
-        uses: ./
-
-      - name: run python in bash
-        shell: bash -l {0}
-        run: |
-          which micromamba
-          micromamba info
-          which python
-          python -VV
-          python -c "import numpy"
-          echo "MAMBA_EXE=$MAMBA_EXE"
-          python test/test_path.py
+      - run: |
+          cat ~/.condarc
