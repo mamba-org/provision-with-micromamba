@@ -152,8 +152,6 @@ async function downloadMicromamba (micromambaUrl) {
 
 function makeCondarcOpts (inputs, extraChannels) {
   let condarcOpts = {
-    always_yes: true,
-    show_channel_urls: true,
     channel_priority: inputs.channelPriority
   }
   if (inputs.channelAlias) {
