@@ -67613,7 +67613,7 @@ function makeFinalCondaRcOptions (inputs, envYaml, condarcHasChannels) {
   if (inputs.deprecatedChannelPriority && !condarcOptions.channel_priority) {
     condarcOptions.channel_priority = inputs.deprecatedChannelPriority
   }
-  if (inputs.deprecatedChannels && !condarcOptions.channels) {
+  if (inputs.deprecatedChannels.length && !condarcOptions.channels) {
     condarcOptions.channels = inputs.deprecatedChannels
   }
   if (!condarcOptions.channels?.length && !envYaml && !condarcHasChannels) {
