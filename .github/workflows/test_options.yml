@@ -120,29 +120,28 @@ jobs:
           environment-file: ${{ matrix.environment-file }}
           environment-name: test-channels
           extra-specs: |
-            ${{ matrix.condarc-options && 'cpuonly' || 'zlib' }}
+            ${{ (matrix.condarc-options && !matrix.channels) && 'cpuonly' || 'zlib' }}
           channels: ${{ matrix.channels }}
           condarc-file: ${{ matrix.condarc-file }}
           condarc-options: ${{ matrix.condarc-options }}
       - name: check channels are correct
         run: |
-          set -x
-          micromamba info
+          micromamba info > /tmp/info
           if test "${{ matrix.environment-file }}${{ matrix.condarc-file }}${{ matrix.condarc-options }}${{ matrix.channels }}" = false; then
             # extra-specs only
-            micromamba info | grep -q conda-forge
-            micromamba info | ! grep -qE 'defaults|free|main|pytorch'
+            grep -q conda-forge /tmp/info
+            ! grep -qE 'defaults|free|main|pytorch' /tmp/info
           elif test -n "${{ matrix.condarc-options }}"; then
-            micromamba info | grep -q pytorch
-            micromamba info | ! grep -qE 'conda-forge|defaults|free|main'
+            grep -q pytorch /tmp/info
+            ! grep -qE 'conda-forge|defaults|free|main' /tmp/info
           elif test -n "${{ matrix.channels }}"; then
-            micromamba info | grep -q main
-            micromamba info | ! grep -qE 'conda-forge|defaults|free|pytorch'
+            grep -q main /tmp/info
+            ! grep -qE 'conda-forge|defaults|free|pytorch' /tmp/info
           elif test -n "${{ matrix.condarc-file }}"; then
-            micromamba info | grep -q free
-            micromamba info | ! grep -qE 'conda-forge|defaults|main|pytorch'
+            grep -q free /tmp/info
+            ! grep -qE 'conda-forge|defaults|main|pytorch' /tmp/info
           else
-            micromamba info | ! grep -qE 'conda-forge|defaults|free|main|pytorch'
+            ! grep -qE 'conda-forge|defaults|free|main|pytorch' /tmp/info
           fi
 
   test_environment_without_name:
