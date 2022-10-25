@@ -67608,18 +67608,18 @@ async function downloadMicromamba (micromambaUrl) {
   }
 }
 
-function makeFinalCondaRcOptions (inputs, envYaml) {
-  const condaRcOptions = yaml.load(inputs.condaRcOptions) || {}
-  if (inputs.deprecatedChannelPriority && !condaRcOptions.channel_priority) {
-    condaRcOptions.channel_priority = inputs.deprecatedChannelPriority
+function makeFinalCondaRcOptions (inputs, envYaml, condarcHasChannels) {
+  const condarcOptions = yaml.load(inputs.condarcOptions) || {}
+  if (inputs.deprecatedChannelPriority && !condarcOptions.channel_priority) {
+    condarcOptions.channel_priority = inputs.deprecatedChannelPriority
   }
-  if (inputs.deprecatedChannels && !condaRcOptions.channels) {
-    condaRcOptions.channels = inputs.deprecatedChannels
+  if (inputs.deprecatedChannels && !condarcOptions.channels) {
+    condarcOptions.channels = inputs.deprecatedChannels
   }
-  if (!condaRcOptions.channels?.length && !envYaml && !yamlFileHasKey(PATHS.condaRc, 'channels')) {
-    condaRcOptions.channels = DEFAULT_CHANNELS
+  if (!condarcOptions.channels?.length && !envYaml && !condarcHasChannels) {
+    condarcOptions.channels = DEFAULT_CHANNELS
   }
-  return condaRcOptions
+  return condarcOptions
 }
 
 async function installMicromamba (inputs) {
@@ -67785,7 +67785,7 @@ async function main () {
     micromambaVersion: core.getInput('micromamba-version'),
     extraSpecs: getInputAsArray('extra-specs'),
     deprecatedChannels: getInputAsArray('channels', ','),
-    condaRcFile: core.getInput('condarc-file'),
+    condarcFile: core.getInput('condarc-file'),
     deprecatedChannelPriority: core.getInput('channel-priority'),
 
     // Caching options
@@ -67799,7 +67799,7 @@ async function main () {
 
     // Advanced options
     logLevel: core.getInput('log-level'),
-    condaRcOptions: core.getInput('condarc-options'),
+    condarcOptions: core.getInput('condarc-options'),
     installerUrl: core.getInput('installer-url'),
     postDeinit: core.getInput('post-deinit')
   }
@@ -67815,9 +67815,10 @@ async function main () {
   }
 
   // Setup .condarc
-  const condarcOptions = makeFinalCondaRcOptions(inputs, envYaml)
-  if (inputs.condaRcFile) {
-    const condarcContents = fs.readFileSync(inputs.condaRcFile)
+  const condarcHasChannels = inputs.condarcFile && yamlFileHasKey(inputs.condarcFile, 'channels')
+  const condarcOptions = makeFinalCondaRcOptions(inputs, envYaml, condarcHasChannels)
+  if (inputs.condarcFile) {
+    const condarcContents = fs.readFileSync(inputs.condarcFile)
     fs.writeFileSync(PATHS.condarc, yaml.dump(condarcOptions) + condarcContents)
   } else {
     fs.writeFileSync(PATHS.condarc, yaml.dump(condarcOptions))
