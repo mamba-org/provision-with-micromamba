@@ -119,7 +119,7 @@ jobs:
           environment-file: ${{ matrix.environment-file }}
           environment-name: test-channels
           extra-specs: |
-            zlib
+            ${{ matrix.condarc-options && 'cpuonly' : 'zlib' }}
           channels: main
           condarc-file: ${{ matrix.condarc-file }}
           condarc-options: ${{ matrix.condarc-options }}
