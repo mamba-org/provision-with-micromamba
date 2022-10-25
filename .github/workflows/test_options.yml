@@ -110,6 +110,7 @@ jobs:
         environment-file: [false, environment.yml]
         condarc-file: ['', .github/workflows/resources/channels_condarc]
         condarc-options: ['', 'channels: [pytorch]']
+        channels: ['', 'main']
     steps:
       - uses: actions/checkout@v3
 
@@ -120,28 +121,28 @@ jobs:
           environment-name: test-channels
           extra-specs: |
             ${{ matrix.condarc-options && 'cpuonly' || 'zlib' }}
-          channels: main
+          channels: ${{ matrix.channels }}
           condarc-file: ${{ matrix.condarc-file }}
           condarc-options: ${{ matrix.condarc-options }}
       - name: check channels are correct
         run: |
           set -x
           micromamba info
-          if test "${{ matrix.environment-file }}${{ matrix.condarc-file }}${{ matrix.condarc-options }}" = false; then
+          if test "${{ matrix.environment-file }}${{ matrix.condarc-file }}${{ matrix.condarc-options }}${{ matrix.channels }}" = false; then
             # extra-specs only
             micromamba info | grep -q conda-forge
-            micromamba info | grep -qEv 'pytorch|defaults|main|pytorch|free'
+            micromamba info | ! grep -qE 'defaults|free|main|pytorch'
           elif test -n "${{ matrix.condarc-options }}"; then
             micromamba info | grep -q pytorch
-            micromamba info | grep -qEv 'pytorch|defaults|conda-forge|main|free'
-          elif test -n "${{ matrix.condarc-file }}"; then
-            micromamba info | grep -q free
-            micromamba info | grep -qEv 'pytorch|defaults|conda-forge|main|pytorch'
+            micromamba info | ! grep -qE 'conda-forge|defaults|free|main'
           elif test -n "${{ matrix.channels }}"; then
             micromamba info | grep -q main
-            micromamba info | grep -qEv 'pytorch|defaults|conda-forge|free|pytorch'
+            micromamba info | ! grep -qE 'conda-forge|defaults|free|pytorch'
+          elif test -n "${{ matrix.condarc-file }}"; then
+            micromamba info | grep -q free
+            micromamba info | ! grep -qE 'conda-forge|defaults|main|pytorch'
           else
-            micromamba info | grep -qEv 'pytorch|defaults|conda-forge|main|free|pytorch'
+            micromamba info | ! grep -qE 'conda-forge|defaults|free|main|pytorch'
           fi
 
   test_environment_without_name:
