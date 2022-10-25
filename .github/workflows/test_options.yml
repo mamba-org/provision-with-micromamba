@@ -32,6 +32,10 @@ jobs:
           environment-file: false
           environment-name: nofile
 
+      - run: |
+          micromamba info | grep -q nofile
+          micromamba info | grep -q conda-forge
+
       - name: install mamba
         uses: ./
         with:

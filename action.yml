@@ -44,7 +44,8 @@ inputs:
       are available.
   channels:
     description: >-
-      Comma separated list of channels to use in order of priority (eg., `conda-forge,my-private-channel`)
+      Comma separated list of channels to use in order of priority (eg., `conda-forge,my-private-channel`).
+      This defaults to `conda-forge` if only `environment-file` is `false` and no `condarc-file` is given and there is no `channels` key in `condarc-opts`.
   condarc-file:
     description: >-
       Path to a `.condarc` file to use. See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/)

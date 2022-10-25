@@ -62664,112 +62664,6 @@ module.exports.implForWrapper = function (wrapper) {
 
 /***/ }),
 
-/***/ 4962:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const fs = __nccwpck_require__(7147)
-const os = __nccwpck_require__(2037)
-const path = __nccwpck_require__(1017)
-
-const exec = __nccwpck_require__(1514)
-const core = __nccwpck_require__(2186)
-const io = __nccwpck_require__(7436)
-
-const PATHS = {
-  condarc: path.join(os.homedir(), '.condarc'),
-  bashprofile: path.join(os.homedir(), '.bash_profile'),
-  micromambaBinFolder: path.join(os.homedir(), 'micromamba-bin'),
-  micromambaExe: path.join(os.homedir(), 'micromamba-bin', 'micromamba'),
-  // Without the "-root" suffix it causes problems, why?
-  // xref https://github.com/mamba-org/mamba/issues/1751
-  micromambaRoot: path.join(os.homedir(), 'micromamba-root'),
-  micromambaPkgs: path.join(os.homedir(), 'micromamba-root', 'pkgs'),
-  micromambaEnvs: path.join(os.homedir(), 'micromamba-root', 'envs')
-}
-
-async function withMkdtemp (callback) {
-  const tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), 'micromamba-'))
-  let res
-  try {
-    res = await callback(tmpdir)
-  } catch (e) {
-    io.rmRF(tmpdir)
-    throw e
-  }
-  io.rmRF(tmpdir)
-  return res
-}
-
-async function executeSubproc (...args) {
-  core.debug(`Running shell command ${JSON.stringify(args)}`)
-  try {
-    return await exec.getExecOutput(...args)
-  } catch (error) {
-    throw Error(`Failed to execute ${JSON.stringify(args)}: ${error}`)
-  }
-}
-
-async function executeMicromambaShell (command, shell, logLevel) {
-  const cmd = micromambaCmd(`shell ${command} -s ${shell} -p ${PATHS.micromambaRoot} -y`, logLevel, PATHS.micromambaExe)
-  const cmd2 = cmd.split(' ')
-  return await executeSubproc(cmd2[0], cmd2.slice(1))
-}
-
-function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
-  return `${micromambaExe} ${command}` + (logLevel ? ` --log-level ${logLevel}` : '')
-}
-
-async function setupProfile (command, os, logLevel) {
-  switch (os) {
-    case 'darwin': 
-      await executeMicromambaShell(command, 'bash', logLevel)
-      // TODO need to fix a check in micromamba so that this works
-      // https://github.com/mamba-org/mamba/issues/925
-      // await executeMicromambaShell(command, 'zsh', logLevel)
-      break;
-    case 'linux':
-      await executeMicromambaShell(command, 'zsh', logLevel)
-      // On Linux, Micromamba modifies .bashrc but we want the modifications to be in .bash_profile.
-      if (command === 'init') {
-        await withMkdtemp(async tmpdir => {
-          const oldHome = process.env.HOME
-          process.env.HOME = tmpdir
-          await executeMicromambaShell(command, 'bash', logLevel)
-          process.env.HOME = oldHome
-          fs.appendFileSync(PATHS.bashprofile, '\n' + fs.readFileSync(path.join(tmpdir, '.bashrc')))
-        })
-      } else {
-        // we still need to deinit for the regular .bashrc since `micromamba shell init` also changes other files, not only .bashrc
-        await executeMicromambaShell(command, 'bash', logLevel)
-        // remove mamba initialize block from .bash_profile
-        const regexBlock = "\n# >>> mamba initialize >>>(?:\n|\r\n)?([\\s\\S]*?)# <<< mamba initialize <<<(?:\n|\r\n)?"
-        const bashProfile = fs.readFileSync(PATHS.bashprofile, 'utf8')
-        const newBashProfile = bashProfile.replace(new RegExp(regexBlock, 'g'), '')
-        fs.writeFileSync(PATHS.bashprofile, newBashProfile)
-      }
-      break;
-    case 'win32':
-      if (await haveBash()) {
-        await executeMicromambaShell(command, 'bash', logLevel)
-      }
-      // https://github.com/mamba-org/mamba/issues/1756
-      await executeMicromambaShell(command, 'cmd.exe', logLevel)
-      await executeMicromambaShell(command, 'powershell', logLevel)
-      break;
-  }
-}
-
-async function haveBash () {
-  return !!(await io.which('bash'))
-}
-
-module.exports = {
-  PATHS, withMkdtemp, executeSubproc, executeMicromambaShell, micromambaCmd, setupProfile, haveBash
-}
-
-
-/***/ }),
-
 /***/ 2877:
 /***/ ((module) => {
 
@@ -63037,6 +62931,7 @@ __nccwpck_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
 const fs = __nccwpck_require__(7147)
+const os = __nccwpck_require__(2037)
 const path = __nccwpck_require__(1017)
 const process = __nccwpck_require__(7282)
 const crypto = __nccwpck_require__(6113)
@@ -63045,11 +62940,22 @@ const yaml = __nccwpck_require__(1917)
 
 const cache = __nccwpck_require__(7799)
 const core = __nccwpck_require__(2186)
+const exec = __nccwpck_require__(1514)
 const io = __nccwpck_require__(7436)
 
-const { PATHS, withMkdtemp, executeSubproc, setupProfile, micromambaCmd, haveBash } = __nccwpck_require__(4962)
+const PATHS = {
+  condarc: path.join(os.homedir(), '.condarc'),
+  bashprofile: path.join(os.homedir(), '.bash_profile'),
+  micromambaBinFolder: path.join(os.homedir(), 'micromamba-bin'),
+  micromambaExe: path.join(os.homedir(), 'micromamba-bin', 'micromamba'),
+  // Without the "-root" suffix it causes problems, why?
+  // xref https://github.com/mamba-org/mamba/issues/1751
+  micromambaRoot: path.join(os.homedir(), 'micromamba-root'),
+  micromambaPkgs: path.join(os.homedir(), 'micromamba-root', 'pkgs'),
+  micromambaEnvs: path.join(os.homedir(), 'micromamba-root', 'envs')
+}
 
-const DEFAULT_CHANNELS = ['conda-forge']
+// --- OS utils ---
 
 function getInputAsArray (name) {
   // From https://github.com/actions/cache/blob/main/src/utils/actionUtils.ts
@@ -63060,7 +62966,14 @@ function getInputAsArray (name) {
     .filter(x => x !== '')
 }
 
-// --- OS utils ---
+async function executeSubproc (...args) {
+  core.debug(`Running shell command ${JSON.stringify(args)}`)
+  try {
+    return await exec.getExecOutput(...args)
+  } catch (error) {
+    throw Error(`Failed to execute ${JSON.stringify(args)}: ${error}`)
+  }
+}
 
 async function executeBashFlags (flags, command) {
   return await executeSubproc('bash', ['-eo', 'pipefail', ...flags, '-c', command])
@@ -63098,6 +63011,27 @@ function sha256Short (s) {
   return sha256(s).substr(0, 8)
 }
 
+function rmRf (dir) {
+  try {
+    fs.rmSync(dir, { recursive: true })
+  } catch (e) {
+    core.warning(`Error removing directory ${dir}: ${e}`)
+  }
+}
+
+async function withMkdtemp (callback) {
+  const tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), 'micromamba-'))
+  let res
+  try {
+    res = await callback(tmpdir)
+  } catch (e) {
+    rmRf(tmpdir)
+    throw e
+  }
+  rmRf(tmpdir)
+  return res
+}
+
 function today () {
   return new Date().toDateString()
 }
@@ -63123,6 +63057,10 @@ async function retry (callback, backoffTimes = [2000, 5000, 10000]) {
       return await callback()
     }
   }
+}
+
+async function haveBash () {
+  return !!(await io.which('bash'))
 }
 
 function dumpFileContents (path) {
@@ -63161,7 +63099,45 @@ function getCondaArch () {
   return arch
 }
 
+function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
+  return `${micromambaExe} ${command}` + (logLevel ? ` --log-level ${logLevel}` : '')
+}
+
+async function executeMicromambaShellInit (shell, logLevel) {
+  const cmd = micromambaCmd(`shell init -s ${shell} -p ${PATHS.micromambaRoot} -y`, logLevel, PATHS.micromambaExe)
+  const cmd2 = cmd.split(' ')
+  return await executeSubproc(cmd2[0], cmd2.slice(1))
+}
+
 // --- Micromamba download + installation ---
+
+const setupProfile = {
+  darwin: async logLevel => {
+    await executeMicromambaShellInit('bash', logLevel)
+    // TODO need to fix a check in micromamba so that this works
+    // https://github.com/mamba-org/mamba/issues/925
+    // await executeMicromambaShellInit('zsh', logLevel)
+  },
+  linux: async logLevel => {
+    await executeMicromambaShellInit('zsh', logLevel)
+    // On Linux, Micromamba modifies .bashrc but we want the modifications to be in .bash_profile.
+    await withMkdtemp(async tmpdir => {
+      const oldHome = process.env.HOME
+      process.env.HOME = tmpdir
+      await executeMicromambaShellInit('bash', logLevel)
+      process.env.HOME = oldHome
+      fs.appendFileSync(PATHS.bashprofile, '\n' + fs.readFileSync(path.join(tmpdir, '.bashrc')))
+    })
+  },
+  win32: async logLevel => {
+    if (await haveBash()) {
+      await executeMicromambaShellInit('bash', logLevel)
+    }
+    // https://github.com/mamba-org/mamba/issues/1756
+    await executeMicromambaShellInit('cmd.exe', logLevel)
+    await executeMicromambaShellInit('powershell', logLevel)
+  }
+}
 
 async function downloadMicromamba (micromambaUrl) {
   fs.mkdirSync(PATHS.micromambaBinFolder)
@@ -63179,7 +63155,7 @@ async function downloadMicromamba (micromambaUrl) {
       }
       await executeSubproc('tar', [
         '-xjf', useWindowsTar ? tarPath : await cygpath(tarBz2Path),
-        '-C', useWindowsTar ? PATHS.micromambaBinFolder : await cygpath(PATHS.micromambaBinFolder),
+        '-C', useWindowsTar ? PATHS.micromambaBinFolder : cygpath(PATHS.micromambaBinFolder),
         '--strip-components=2', 'Library/bin/micromamba.exe'
       ])
     })
@@ -63190,33 +63166,26 @@ async function downloadMicromamba (micromambaUrl) {
   }
 }
 
-function makeCondarcOpts (inputs, envYaml) {
+function makeCondarcOpts (inputs, extraChannels) {
   let condarcOpts = {
+    always_yes: true,
+    show_channel_urls: true,
     channel_priority: inputs.channelPriority
   }
   if (inputs.channelAlias) {
     condarcOpts.channel_alias = inputs.channelAlias
   }
-  let channels = []
-  if (inputs.channels) {
-    channels = inputs.channels.split(',').map(s => s.trim())
-  }
-  if (envYaml?.channels) {
-    channels.push.apply(channels, envYaml.channels)
-  }
+  const channels =
+    inputs.channels && extraChannels
+      ? inputs.channels + ',' + extraChannels.join(', ')
+      : inputs.channels || extraChannels?.join(', ')
   if (channels) {
-    condarcOpts.channels = channels
+    condarcOpts.channels = channels.split(',').map(s => s.trim())
   }
-
-  const moreOpts = yaml.load(inputs.condaRcOptions)
+  const moreOpts = yaml.safeLoad(inputs.condaRcOptions)
   if (moreOpts) {
     condarcOpts = { ...condarcOpts, ...moreOpts }
   }
-
-  if (condarcOpts.channels && !envYaml && !moreOpts.channels) {
-    condarcOpts.channels = DEFAULT_CHANNELS
-  }
-
   return condarcOpts
 }
 
@@ -63231,7 +63200,7 @@ async function installMicromamba (inputs) {
       await downloadMicromamba(micromambaUrl)
       saveCacheOnPost(...cacheArgs)
     }
-    await setupProfile('init', process.platform, inputs.logLevel)
+    await setupProfile[process.platform](inputs.logLevel)
     core.exportVariable('MAMBA_ROOT_PREFIX', PATHS.micromambaRoot)
     core.exportVariable('MAMBA_EXE', PATHS.micromambaExe)
     core.addPath(PATHS.micromambaBinFolder)
@@ -63243,9 +63212,7 @@ async function installMicromamba (inputs) {
 
 function isSelected (item) {
   if (/sel\(.*\):.*/gi.test(item)) {
-    let condaPlatform = getCondaArch().split('-')[0]
-    if (["linux", "osx"].includes(condaPlatform))
-      condaPlatform += '|unix';
+    const condaPlatform = getCondaArch().split('-')[0]
     return new RegExp(`sel\\(${condaPlatform}\\):.*`, 'gi').test(item)
   }
   return true
@@ -63266,7 +63233,7 @@ async function createOrUpdateEnv (envName, envFilePath, extraSpecs, logLevel) {
   const action = fs.existsSync(envFolder) ? 'update' : 'create'
   const selectedExtraSpecs = selectSelectors(extraSpecs)
   core.info(`${action} env ${envName}`)
-  let cmd = micromambaCmd(`${action} -n ${envName} -y`, logLevel, PATHS.micromambaExe)
+  let cmd = micromambaCmd(`${action} -n ${envName} --strict-channel-priority -y`, logLevel, PATHS.micromambaExe)
   if (selectedExtraSpecs.length) {
     cmd += ' ' + selectedExtraSpecs.map(e => `"${e}"`).join(' ')
   }
@@ -63347,6 +63314,7 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
   const autoactivateCmd = `micromamba activate ${envName};`
   if (process.platform === 'win32') {
     const ps1File = (await executePwsh('echo $profile')).stdout.trim()
+    core.warning(path.dirname(ps1File))
     fs.appendFileSync(ps1File, '\n' + autoactivateCmd)
     dumpFileContents(ps1File)
   }
@@ -63357,7 +63325,7 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
 
   // Sanity check
   const { stdout: micromambaInfoJson } = await executeLoginShell(micromambaCmd('info --json'))
-  const autoactivatedEnvLocation = yaml.load(micromambaInfoJson)['env location']
+  const autoactivatedEnvLocation = yaml.safeLoad(micromambaInfoJson)['env location']
   if (autoactivatedEnvLocation === '-') {
     throw Error('Error setting up environment')
   }
@@ -63375,8 +63343,6 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
 // --- Main ---
 
 async function main () {
-  // Using getInput is not safe in a post action for templated inputs. 
-  // Therefore, we need to save the input values beforehand to the state.
   const inputs = {
     // Basic options
     envFile: core.getInput('environment-file'),
@@ -63399,26 +63365,24 @@ async function main () {
     // Advanced options
     logLevel: core.getInput('log-level'),
     condaRcOptions: core.getInput('condarc-options'),
-    installerUrl: core.getInput('installer-url'),
-    postDeinit: core.getInput('post-deinit')
+    installerUrl: core.getInput('installer-url')
   }
-  core.saveState('inputs', JSON.stringify(inputs))
 
   // Read environment file
   let envFilePath, envYaml
   if (inputs.envFile !== 'false') {
     envFilePath = path.join(process.env.GITHUB_WORKSPACE || '', inputs.envFile)
     if (!envFilePath.endsWith('.lock')) {
-      envYaml = yaml.load(fs.readFileSync(envFilePath, 'utf8'))
+      envYaml = yaml.safeLoad(fs.readFileSync(envFilePath, 'utf8'))
     }
   }
 
   // Setup .condarc
-  const condarcOpts = makeCondarcOpts(inputs, envYaml)
+  const condarcOpts = makeCondarcOpts(inputs, envYaml?.extraChannels)
   if (inputs.condaRcFile) {
     fs.copyFileSync(inputs.condaRcFile, PATHS.condarc)
   }
-  fs.appendFileSync(PATHS.condarc, yaml.dump(condarcOpts))
+  fs.appendFileSync(PATHS.condarc, yaml.safeDump(condarcOpts))
   core.debug(`Contents of ${PATHS.condarc}\n${fs.readFileSync(PATHS.condarc)}`)
 
   await installMicromamba(inputs)

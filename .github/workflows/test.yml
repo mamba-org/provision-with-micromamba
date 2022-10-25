@@ -26,6 +26,8 @@ jobs:
         with:
           environment-file: false
 
+      - run: micromamba info
+
       - name: install mamba
         uses: ./
 

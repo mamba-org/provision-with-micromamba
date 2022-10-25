@@ -11,6 +11,8 @@ const io = require('@actions/io')
 
 const { PATHS, withMkdtemp, executeSubproc, setupProfile, micromambaCmd, haveBash } = require('./util')
 
+const DEFAULT_CHANNELS = ['conda-forge']
+
 function getInputAsArray (name) {
   // From https://github.com/actions/cache/blob/main/src/utils/actionUtils.ts
   return core
@@ -150,7 +152,7 @@ async function downloadMicromamba (micromambaUrl) {
   }
 }
 
-function makeCondarcOpts (inputs, extraChannels) {
+function makeCondarcOpts (inputs, envYaml) {
   let condarcOpts = {
     channel_priority: inputs.channelPriority
   }
@@ -161,8 +163,8 @@ function makeCondarcOpts (inputs, extraChannels) {
   if (inputs.channels) {
     channels = inputs.channels.split(',').map(s => s.trim())
   }
-  if (extraChannels) {
-    channels.push.apply(channels, extraChannels)
+  if (envYaml?.channels) {
+    channels.push.apply(channels, envYaml.channels)
   }
   if (channels) {
     condarcOpts.channels = channels
@@ -172,6 +174,11 @@ function makeCondarcOpts (inputs, extraChannels) {
   if (moreOpts) {
     condarcOpts = { ...condarcOpts, ...moreOpts }
   }
+
+  if (condarcOpts.channels && !envYaml && !moreOpts.channels) {
+    condarcOpts.channels = DEFAULT_CHANNELS
+  }
+
   return condarcOpts
 }
 
@@ -369,7 +376,7 @@ async function main () {
   }
 
   // Setup .condarc
-  const condarcOpts = makeCondarcOpts(inputs, envYaml?.channels)
+  const condarcOpts = makeCondarcOpts(inputs, envYaml)
   if (inputs.condaRcFile) {
     fs.copyFileSync(inputs.condaRcFile, PATHS.condarc)
   }
