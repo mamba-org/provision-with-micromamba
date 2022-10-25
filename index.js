@@ -369,9 +369,11 @@ async function main () {
   // Setup .condarc
   const condarcOptions = makeFinalCondaRcOptions(inputs, envYaml)
   if (inputs.condaRcFile) {
-    fs.copyFileSync(inputs.condaRcFile, PATHS.condarc)
+    const condarcContents = fs.readFileSync(inputs.condaRcFile)
+    fs.writeFileSync(PATHS.condarc, yaml.dump(condarcOptions) + condarcContents)
+  } else {
+    fs.writeFileSync(yaml.dump(condarcOptions))
   }
-  fs.appendFileSync(PATHS.condarc, yaml.dump(condarcOptions))
   core.debug(`Contents of ${PATHS.condarc}\n${fs.readFileSync(PATHS.condarc)}`)
 
   await installMicromamba(inputs)
