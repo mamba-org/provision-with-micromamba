@@ -125,6 +125,7 @@ jobs:
           condarc-options: ${{ matrix.condarc-options }}
       - name: check channels are correct
         run: |
+          set -x
           micromamba info
           if test "${{ matrix.environment-file }}${{ matrix.condarc-file }}${{ matrix.condarc-options }}" = false; then
             # extra-specs only
