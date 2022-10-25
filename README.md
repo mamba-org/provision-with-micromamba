@@ -86,7 +86,7 @@ Default value: `https://micro.mamba.pm/api/micromamba`
 
 ### `condarc-options`
 
-More options to append to `.condarc`. Must be a string of valid YAML:
+More options to prepend to `.condarc`. Must be a string of valid YAML:
 
 ```yaml
 condarc-options: |
