@@ -136,12 +136,12 @@ jobs:
           elif test -n "${{ matrix.condarc-options }}"; then
             grep -q pytorch /tmp/info
             ! grep -qE 'conda-forge|defaults|free|main' /tmp/info
-          elif test -n "${{ matrix.condarc-file }}"; then
-            grep -q free /tmp/info
-            ! grep -qE 'conda-forge|defaults|main|pytorch' /tmp/info
           elif test -n "${{ matrix.channels }}"; then
             grep -q main /tmp/info
             ! grep -qE 'conda-forge|defaults|free|pytorch' /tmp/info
+          elif test -n "${{ matrix.condarc-file }}"; then
+            grep -q free /tmp/info
+            ! grep -qE 'conda-forge|defaults|main|pytorch' /tmp/info
           else
             ! grep -qE 'conda-forge|defaults|free|main|pytorch' /tmp/info
           fi
