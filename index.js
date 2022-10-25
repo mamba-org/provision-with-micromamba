@@ -152,34 +152,20 @@ async function downloadMicromamba (micromambaUrl) {
   }
 }
 
-function makeCondarcOpts (inputs, envYaml) {
-  let condarcOpts = {
-    channel_priority: inputs.channelPriority
+function makeFinalCondaRcOptions (inputs, envYaml) {
+  let finalCondaRcOptions = {
+    channel_priority: inputs.channelPriority,
+    channel_alias: inputs.channelAlias,
+    channels: envYaml?.channels || inputs.channels.split(',').map(s => s.trim())
   }
-  if (inputs.channelAlias) {
-    condarcOpts.channel_alias = inputs.channelAlias
+  const condaRcOptions = yaml.load(inputs.condaRcOptions)
+  if (condaRcOptions) {
+    finalCondaRcOptions = { ...finalCondaRcOptions, ...condaRcOptions }
   }
-  let channels = []
-  if (inputs.channels) {
-    channels = inputs.channels.split(',').map(s => s.trim())
+  if (!finalCondaRcOptions.channels && !envYaml && !condaRcOptions?.channels) {
+    finalCondaRcOptions.channels = DEFAULT_CHANNELS
   }
-  if (envYaml?.channels) {
-    channels.push.apply(channels, envYaml.channels)
-  }
-  if (channels) {
-    condarcOpts.channels = channels
-  }
-
-  const moreOpts = yaml.load(inputs.condaRcOptions)
-  if (moreOpts) {
-    condarcOpts = { ...condarcOpts, ...moreOpts }
-  }
-
-  if (condarcOpts.channels && !envYaml && !moreOpts?.channels) {
-    condarcOpts.channels = DEFAULT_CHANNELS
-  }
-
-  return condarcOpts
+  return finalCondaRcOptions
 }
 
 async function installMicromamba (inputs) {
@@ -375,7 +361,7 @@ async function main () {
   }
 
   // Setup .condarc
-  const condarcOpts = makeCondarcOpts(inputs, envYaml)
+  const condarcOpts = makeFinalCondaRcOptions(inputs, envYaml)
   if (inputs.condaRcFile) {
     fs.copyFileSync(inputs.condaRcFile, PATHS.condarc)
   }
