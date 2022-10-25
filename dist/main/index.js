@@ -67820,7 +67820,7 @@ async function main () {
     const condarcContents = fs.readFileSync(inputs.condaRcFile)
     fs.writeFileSync(PATHS.condarc, yaml.dump(condarcOptions) + condarcContents)
   } else {
-    fs.writeFileSync(yaml.dump(condarcOptions))
+    fs.writeFileSync(PATHS.condarc, yaml.dump(condarcOptions))
   }
   core.debug(`Contents of ${PATHS.condarc}\n${fs.readFileSync(PATHS.condarc)}`)
 
