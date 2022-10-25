@@ -26,14 +26,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # Download only
       - name: install mamba
         uses: ./
         with:
           environment-file: false
           environment-name: nofile
-
       - run: |
-          micromamba info | grep -q nofile
+          micromamba info | grep -qv nofile
           micromamba info | grep -q conda-forge
 
       - name: install mamba
