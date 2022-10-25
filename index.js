@@ -162,7 +162,7 @@ function makeFinalCondaRcOptions (inputs, envYaml) {
   if (condaRcOptions) {
     finalCondaRcOptions = { ...finalCondaRcOptions, ...condaRcOptions }
   }
-  if (!finalCondaRcOptions.channels && !envYaml && !condaRcOptions?.channels) {
+  if (!finalCondaRcOptions.channels?.length && !envYaml && !condaRcOptions?.channels?.length) {
     finalCondaRcOptions.channels = DEFAULT_CHANNELS
   }
   return finalCondaRcOptions
