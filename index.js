@@ -371,10 +371,10 @@ async function main () {
   const condarcOpts = makeCondarcOpts(inputs, envYaml?.channels)
   const inputsCondarcContents = inputs.condarcFile ? fs.readFileSync(inputs.condarcFile) : ''
   const condarcContents = inputsCondarcContents + '\n' + yaml.dump(condarcOpts)
-  core.debug(`Contents of temporary .condarc:\n${condarcContents}`)
+  core.debug(`Contents of temporary condarc:\n${condarcContents}`)
 
   await withMkdtemp(async tmpdir => {
-    const tmpCondarc = `${tmpdir}/.condarc`
+    const tmpCondarc = `${tmpdir}/condarc`
     fs.writeFileSync(tmpCondarc, condarcContents)
     await installMicromamba(inputs, tmpCondarc)
     await installEnvironment(inputs, envFilePath, envYaml, tmpCondarc)
