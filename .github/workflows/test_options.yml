@@ -131,7 +131,7 @@ jobs:
             micromamba info | grep -q conda-forge
             micromamba info | grep -qEv 'pytorch|defaults|main|pytorch|free'
           elif test -n "${{ matrix.condarc-options }}"; then
-            micromamba info | grep -q pytorch
+            micromamba info | grep -q pytorch2
             micromamba info | grep -qEv 'pytorch|defaults|conda-forge|main|free'
           elif test -n "${{ matrix.condarc-file }}"; then
             micromamba info | grep -q free
