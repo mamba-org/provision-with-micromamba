@@ -215,7 +215,7 @@ function selectSelectors (extraSpecs) {
   return ret
 }
 
-async function createOrUpdateEnv (condarcPath, envName, envFilePath, extraSpecs, logLevel) {
+async function createOrUpdateEnv (envName, envFilePath, extraSpecs, condarcPath, logLevel) {
   const envFolder = path.join(PATHS.micromambaEnvs, envName)
   const action = fs.existsSync(envFolder) ? 'update' : 'create'
   const selectedExtraSpecs = selectSelectors(extraSpecs)
