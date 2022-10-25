@@ -67614,7 +67614,7 @@ function makeFinalCondaRcOptions (inputs, envYaml) {
     condaRcOptions.channel_priority = inputs.deprecatedChannelPriority
   }
   if (inputs.deprecatedChannels && !condaRcOptions.channels) {
-    condaRcOptions.channels = inputs.deprecatedChannelPriority
+    condaRcOptions.channels = inputs.deprecatedChannels
   }
   if (!condaRcOptions.channels?.length && !envYaml && !yamlFileHasKey(PATHS.condaRc)) {
     condaRcOptions.channels = DEFAULT_CHANNELS
