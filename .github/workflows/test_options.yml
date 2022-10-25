@@ -119,7 +119,7 @@ jobs:
           environment-file: ${{ matrix.environment-file }}
           environment-name: test-channels
           extra-specs: |
-            ${{ matrix.condarc-options && 'cpuonly' : 'zlib' }}
+            ${{ matrix.condarc-options && 'cpuonly' || 'zlib' }}
           channels: main
           condarc-file: ${{ matrix.condarc-file }}
           condarc-options: ${{ matrix.condarc-options }}
@@ -131,7 +131,7 @@ jobs:
             micromamba info | grep -q conda-forge
             micromamba info | grep -qEv 'pytorch|defaults|main|pytorch|free'
           elif test -n "${{ matrix.condarc-options }}"; then
-            micromamba info | grep -q pytorch2
+            micromamba info | grep -q pytorch
             micromamba info | grep -qEv 'pytorch|defaults|conda-forge|main|free'
           elif test -n "${{ matrix.condarc-file }}"; then
             micromamba info | grep -q free
