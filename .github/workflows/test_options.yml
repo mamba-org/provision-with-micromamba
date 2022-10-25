@@ -119,7 +119,7 @@ jobs:
           environment-file: ${{ matrix.environment-file }}
           environment-name: test-channels
           extra-specs: |
-            xtensor
+            zlib
           channels: defaults,channels-channel
           condarc-file: ${{ matrix.condarc-file }}
           condarc-options: ${{ matrix.condarc-options }}
