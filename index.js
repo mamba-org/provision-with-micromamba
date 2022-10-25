@@ -13,11 +13,11 @@ const { PATHS, withMkdtemp, executeSubproc, setupProfile, micromambaCmd, haveBas
 
 const DEFAULT_CHANNELS = ['conda-forge']
 
-function getInputAsArray (name) {
+function getInputAsArray (name, sep = '\n') {
   // From https://github.com/actions/cache/blob/main/src/utils/actionUtils.ts
   return core
     .getInput(name)
-    .split('\n')
+    .split(sep)
     .map(s => s.trim())
     .filter(x => x !== '')
 }
@@ -156,7 +156,7 @@ function makeFinalCondaRcOptions (inputs, envYaml) {
   let finalCondaRcOptions = {
     channel_priority: inputs.channelPriority,
     channel_alias: inputs.channelAlias,
-    channels: envYaml?.channels || inputs.channels.split(',').map(s => s.trim())
+    channels: envYaml?.channels || inputs.channels
   }
   const condaRcOptions = yaml.load(inputs.condaRcOptions)
   if (condaRcOptions) {
@@ -330,7 +330,7 @@ async function main () {
     envName: core.getInput('environment-name'),
     micromambaVersion: core.getInput('micromamba-version'),
     extraSpecs: getInputAsArray('extra-specs'),
-    channels: core.getInput('channels'),
+    channels: getInputAsArray('channels', ','),
     condaRcFile: core.getInput('condarc-file'),
     channelPriority: core.getInput('channel-priority'),
 
