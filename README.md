@@ -15,7 +15,7 @@ They are preinstalled in the default GitHub Actions environments.
 
 ### `environment-file`
 
-Required. Path to the `environment.yml` or `.lock` file for the Conda environment OR `false`. If `false`, only *extra-specs* will be considered and you should provide *channels*. If both *environment-file* and *extra-specs* are empty, no environment will be created (only `micromamba` will be installed). See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file) for more information.
+Required. Path to the `environment.yml` or `.lock` file for the Conda environment OR `false`. If `false`, only *extra-specs* will be considered. If both *environment-file* and *extra-specs* are empty, no environment will be created (only `micromamba` will be installed). See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file) for more information.
 
 Default value: `environment.yml`
 
@@ -46,7 +46,7 @@ are available.
 
 ### `channels`
 
-Comma separated list of channels to use in order of priority (eg., `conda-forge,my-private-channel`). This defaults to `conda-forge` if only `environment-file` is `false` and no `condarc-file` is given and there is no `channels` key in `condarc-opts`.
+DEPRECATED, alias for `condarc-options: channels:`.
 
 ### `condarc-file`
 
@@ -54,9 +54,7 @@ Path to a `.condarc` file to use. See the [Conda documentation](https://docs.con
 
 ### `channel-priority`
 
-Channel priority to use. One of `"strict"`, `"flexible"`, and `"disabled"`. See https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html#strict-channel-priority for more information.
-
-Default value: `strict`
+DEPRECATED, alias for `condarc-options: channel_priority:`. Channel priority to use. One of `"strict"`, `"flexible"`, and `"disabled"`. See https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html#strict-channel-priority for more information.
 
 ### `cache-downloads`
 
@@ -95,6 +93,9 @@ condarc-options: |
   proxy_servers:
     http: ...
 ```
+
+Defaults to `channel_priority: strict`, and an additional `channels: conda-forge`
+if `environment-file` is `false` and no `channels` are given in `condarc-file` and `condarc-options`.
 
 ### `post-deinit`
 

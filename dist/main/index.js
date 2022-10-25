@@ -67535,6 +67535,14 @@ async function retry (callback, backoffTimes = [2000, 5000, 10000]) {
   }
 }
 
+function yamlFileHasKey (path, key) {
+  try {
+    return yaml.load(fs.readFileSync(path))[key] != null
+  } catch {
+    return false
+  }
+}
+
 function dumpFileContents (path) {
   core.info(`--- Contents of ${path} ---\n${fs.readFileSync(path)}\n--- End contents of ${path} ---`)
 }
@@ -67601,16 +67609,17 @@ async function downloadMicromamba (micromambaUrl) {
 }
 
 function makeFinalCondaRcOptions (inputs, envYaml) {
-  const finalCondaRcOptions = {
-    channel_priority: inputs.channelPriority,
-    channel_alias: inputs.channelAlias,
-    channels: [...inputs.channels, ...(envYaml?.channels || [])],
-    ...yaml.load(inputs.condaRcOptions)
+  const condaRcOptions = yaml.load(inputs.condaRcOptions) || {}
+  if (inputs.deprecatedChannelPriority && !condaRcOptions.channel_priority) {
+    condaRcOptions.channel_priority = inputs.deprecatedChannelPriority
   }
-  if (!finalCondaRcOptions.channels?.length && !envYaml) {
-    finalCondaRcOptions.channels = DEFAULT_CHANNELS
+  if (inputs.deprecatedChannels && !condaRcOptions.channels) {
+    condaRcOptions.channels = inputs.deprecatedChannelPriority
   }
-  return finalCondaRcOptions
+  if (!condaRcOptions.channels?.length && !envYaml && !yamlFileHasKey(PATHS.condaRc)) {
+    condaRcOptions.channels = DEFAULT_CHANNELS
+  }
+  return condaRcOptions
 }
 
 async function installMicromamba (inputs) {
@@ -67775,9 +67784,9 @@ async function main () {
     envName: core.getInput('environment-name'),
     micromambaVersion: core.getInput('micromamba-version'),
     extraSpecs: getInputAsArray('extra-specs'),
-    channels: getInputAsArray('channels', ','),
+    deprecatedChannels: getInputAsArray('channels', ','),
     condaRcFile: core.getInput('condarc-file'),
-    channelPriority: core.getInput('channel-priority'),
+    deprecatedChannelPriority: core.getInput('channel-priority'),
 
     // Caching options
     cacheDownloads: core.getBooleanInput('cache-downloads'),
@@ -67806,11 +67815,11 @@ async function main () {
   }
 
   // Setup .condarc
-  const condarcOpts = makeFinalCondaRcOptions(inputs, envYaml)
+  const condarcOptions = makeFinalCondaRcOptions(inputs, envYaml)
   if (inputs.condaRcFile) {
     fs.copyFileSync(inputs.condaRcFile, PATHS.condarc)
   }
-  fs.appendFileSync(PATHS.condarc, yaml.dump(condarcOpts))
+  fs.appendFileSync(PATHS.condarc, yaml.dump(condarcOptions))
   core.debug(`Contents of ${PATHS.condarc}\n${fs.readFileSync(PATHS.condarc)}`)
 
   await installMicromamba(inputs)
