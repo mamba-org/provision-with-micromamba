@@ -48,7 +48,7 @@ async function main () {
   const inputs = JSON.parse(core.getState('inputs'))
 
   if (useDeinit(inputs)) {
-    core.startGroup(`Deinitializing micromamba ...`)
+    core.startGroup('Deinitializing micromamba ...')
     await setupProfile('deinit', process.platform, inputs.logLevel)
     core.endGroup()
   }

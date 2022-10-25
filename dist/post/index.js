@@ -58554,12 +58554,12 @@ function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
 
 async function setupProfile (command, os, logLevel) {
   switch (os) {
-    case 'darwin': 
+    case 'darwin':
       await executeMicromambaShell(command, 'bash', logLevel)
       // TODO need to fix a check in micromamba so that this works
       // https://github.com/mamba-org/mamba/issues/925
       // await executeMicromambaShell(command, 'zsh', logLevel)
-      break;
+      break
     case 'linux':
       await executeMicromambaShell(command, 'zsh', logLevel)
       // On Linux, Micromamba modifies .bashrc but we want the modifications to be in .bash_profile.
@@ -58575,12 +58575,12 @@ async function setupProfile (command, os, logLevel) {
         // we still need to deinit for the regular .bashrc since `micromamba shell init` also changes other files, not only .bashrc
         await executeMicromambaShell(command, 'bash', logLevel)
         // remove mamba initialize block from .bash_profile
-        const regexBlock = "\n# >>> mamba initialize >>>(?:\n|\r\n)?([\\s\\S]*?)# <<< mamba initialize <<<(?:\n|\r\n)?"
+        const regexBlock = '\n# >>> mamba initialize >>>(?:\n|\r\n)?([\\s\\S]*?)# <<< mamba initialize <<<(?:\n|\r\n)?'
         const bashProfile = fs.readFileSync(PATHS.bashprofile, 'utf8')
         const newBashProfile = bashProfile.replace(new RegExp(regexBlock, 'g'), '')
         fs.writeFileSync(PATHS.bashprofile, newBashProfile)
       }
-      break;
+      break
     case 'win32':
       if (await haveBash()) {
         await executeMicromambaShell(command, 'bash', logLevel)
@@ -58588,7 +58588,7 @@ async function setupProfile (command, os, logLevel) {
       // https://github.com/mamba-org/mamba/issues/1756
       await executeMicromambaShell(command, 'cmd.exe', logLevel)
       await executeMicromambaShell(command, 'powershell', logLevel)
-      break;
+      break
   }
 }
 
@@ -58911,7 +58911,7 @@ async function main () {
   const inputs = JSON.parse(core.getState('inputs'))
 
   if (useDeinit(inputs)) {
-    core.startGroup(`Deinitializing micromamba ...`)
+    core.startGroup('Deinitializing micromamba ...')
     await setupProfile('deinit', process.platform, inputs.logLevel)
     core.endGroup()
   }

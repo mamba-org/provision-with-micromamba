@@ -175,7 +175,7 @@ function makeCondarcOpts (inputs, envYaml) {
     condarcOpts = { ...condarcOpts, ...moreOpts }
   }
 
-  if (condarcOpts.channels && !envYaml && !moreOpts.channels) {
+  if (condarcOpts.channels && !envYaml && !moreOpts?.channels) {
     condarcOpts.channels = DEFAULT_CHANNELS
   }
 
@@ -206,8 +206,7 @@ async function installMicromamba (inputs) {
 function isSelected (item) {
   if (/sel\(.*\):.*/gi.test(item)) {
     let condaPlatform = getCondaArch().split('-')[0]
-    if (["linux", "osx"].includes(condaPlatform))
-      condaPlatform += '|unix';
+    if (['linux', 'osx'].includes(condaPlatform)) { condaPlatform += '|unix' }
     return new RegExp(`sel\\(${condaPlatform}\\):.*`, 'gi').test(item)
   }
   return true
@@ -337,7 +336,7 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
 // --- Main ---
 
 async function main () {
-  // Using getInput is not safe in a post action for templated inputs. 
+  // Using getInput is not safe in a post action for templated inputs.
   // Therefore, we need to save the input values beforehand to the state.
   const inputs = {
     // Basic options
