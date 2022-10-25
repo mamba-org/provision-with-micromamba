@@ -156,7 +156,7 @@ function makeFinalCondaRcOptions (inputs, envYaml) {
   let finalCondaRcOptions = {
     channel_priority: inputs.channelPriority,
     channel_alias: inputs.channelAlias,
-    channels: envYaml?.channels || inputs.channels
+    channels: envYaml?.channels?.length ? envYaml.channels : inputs.channels
   }
   const condaRcOptions = yaml.load(inputs.condaRcOptions)
   if (condaRcOptions) {
