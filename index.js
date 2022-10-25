@@ -168,14 +168,14 @@ function makeCondarcOpts (inputs, extraChannels) {
     condarcOpts.channels = channels
   }
 
-  const moreOpts = yaml.load(inputs.condaRcOptions)
+  const moreOpts = yaml.load(inputs.condarcOptions)
   if (moreOpts) {
     condarcOpts = { ...condarcOpts, ...moreOpts }
   }
   return condarcOpts
 }
 
-async function installMicromamba (inputs) {
+async function installMicromamba (inputs, condarcPath) {
   // Install micromamba
   if (!fs.existsSync(PATHS.micromambaBinFolder)) {
     core.startGroup('Install micromamba ...')
@@ -186,7 +186,7 @@ async function installMicromamba (inputs) {
       await downloadMicromamba(micromambaUrl)
       saveCacheOnPost(...cacheArgs)
     }
-    await setupProfile('init', process.platform, inputs.logLevel)
+    await setupProfile('init', process.platform, condarcPath, inputs.logLevel)
     core.exportVariable('MAMBA_ROOT_PREFIX', PATHS.micromambaRoot)
     core.exportVariable('MAMBA_EXE', PATHS.micromambaExe)
     core.addPath(PATHS.micromambaBinFolder)
@@ -199,8 +199,7 @@ async function installMicromamba (inputs) {
 function isSelected (item) {
   if (/sel\(.*\):.*/gi.test(item)) {
     let condaPlatform = getCondaArch().split('-')[0]
-    if (["linux", "osx"].includes(condaPlatform))
-      condaPlatform += '|unix';
+    if (['linux', 'osx'].includes(condaPlatform)) { condaPlatform += '|unix' }
     return new RegExp(`sel\\(${condaPlatform}\\):.*`, 'gi').test(item)
   }
   return true
@@ -216,12 +215,12 @@ function selectSelectors (extraSpecs) {
   return ret
 }
 
-async function createOrUpdateEnv (envName, envFilePath, extraSpecs, logLevel) {
+async function createOrUpdateEnv (condarcPath, envName, envFilePath, extraSpecs, logLevel) {
   const envFolder = path.join(PATHS.micromambaEnvs, envName)
   const action = fs.existsSync(envFolder) ? 'update' : 'create'
   const selectedExtraSpecs = selectSelectors(extraSpecs)
   core.info(`${action} env ${envName}`)
-  let cmd = micromambaCmd(`${action} -n ${envName} -y`, logLevel, PATHS.micromambaExe)
+  let cmd = micromambaCmd(`${action} -n ${envName} -y`, condarcPath, logLevel, PATHS.micromambaExe)
   if (selectedExtraSpecs.length) {
     cmd += ' ' + selectedExtraSpecs.map(e => `"${e}"`).join(' ')
   }
@@ -262,7 +261,7 @@ function determineEnvironmentName (inputs, envFilePath, envYaml) {
   }
 }
 
-async function installEnvironment (inputs, envFilePath, envYaml) {
+async function installEnvironment (inputs, envFilePath, envYaml, condarcPath) {
   if (!(envFilePath || inputs.extraSpecs.length)) {
     core.info("Skipping environment install because no 'environment-file' or 'extra-specs' are set")
     return
@@ -295,7 +294,7 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
       downloadCacheArgs = [PATHS.micromambaPkgs, `micromamba-pkgs ${key}`]
       downloadCacheHit = await tryRestoreCache(...downloadCacheArgs)
     }
-    await createOrUpdateEnv(envName, envFilePath, inputs.extraSpecs, inputs.logLevel)
+    await createOrUpdateEnv(envName, envFilePath, inputs.extraSpecs, condarcPath, inputs.logLevel)
   }
 
   // Add micromamba activate to profile
@@ -330,7 +329,7 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
 // --- Main ---
 
 async function main () {
-  // Using getInput is not safe in a post action for templated inputs. 
+  // Using getInput is not safe in a post action for templated inputs.
   // Therefore, we need to save the input values beforehand to the state.
   const inputs = {
     // Basic options
@@ -339,7 +338,7 @@ async function main () {
     micromambaVersion: core.getInput('micromamba-version'),
     extraSpecs: getInputAsArray('extra-specs'),
     channels: core.getInput('channels'),
-    condaRcFile: core.getInput('condarc-file'),
+    condarcFile: core.getInput('condarc-file'),
     channelPriority: core.getInput('channel-priority'),
 
     // Caching options
@@ -353,7 +352,7 @@ async function main () {
 
     // Advanced options
     logLevel: core.getInput('log-level'),
-    condaRcOptions: core.getInput('condarc-options'),
+    condarcOptions: core.getInput('condarc-options'),
     installerUrl: core.getInput('installer-url'),
     postDeinit: core.getInput('post-deinit')
   }
@@ -370,20 +369,22 @@ async function main () {
 
   // Setup .condarc
   const condarcOpts = makeCondarcOpts(inputs, envYaml?.channels)
-  if (inputs.condaRcFile) {
-    fs.copyFileSync(inputs.condaRcFile, PATHS.condarc)
-  }
-  fs.appendFileSync(PATHS.condarc, yaml.dump(condarcOpts))
-  core.debug(`Contents of ${PATHS.condarc}\n${fs.readFileSync(PATHS.condarc)}`)
+  const inputsCondarcContents = inputs.condarcFile ? fs.readFileSync(inputs.condarcFile) : ''
+  const condarcContents = inputsCondarcContents + '\n' + yaml.dump(condarcOpts)
+  core.debug(`Contents of temporary .condarc:\n${condarcContents}`)
 
-  await installMicromamba(inputs)
-  await installEnvironment(inputs, envFilePath, envYaml)
+  await withMkdtemp(async tmpdir => {
+    const tmpCondarc = `${tmpdir}/.condarc`
+    fs.writeFileSync(tmpCondarc, condarcContents)
+    await installMicromamba(inputs, tmpCondarc)
+    await installEnvironment(inputs, envFilePath, envYaml, tmpCondarc)
 
-  // Show environment info
-  core.startGroup('Environment info')
-  await executeLoginShell(micromambaCmd('info', inputs.logLevel))
-  await executeLoginShell(micromambaCmd('list', inputs.logLevel))
-  core.endGroup()
+    // Show environment info
+    core.startGroup('Environment info')
+    await executeLoginShell(micromambaCmd('info', tmpCondarc, inputs.logLevel))
+    await executeLoginShell(micromambaCmd('list', tmpCondarc, inputs.logLevel))
+    core.endGroup()
+  })
 
   // This must always be last in main().
   core.saveState('mainRanSuccessfully', true)

@@ -63011,53 +63011,53 @@ async function executeSubproc (...args) {
   }
 }
 
-async function executeMicromambaShell (command, shell, logLevel) {
-  const cmd = micromambaCmd(`shell ${command} -s ${shell} -p ${PATHS.micromambaRoot} -y`, logLevel, PATHS.micromambaExe)
+async function executeMicromambaShell (command, shell, condarcPath, logLevel) {
+  const cmd = micromambaCmd(`shell ${command} -s ${shell} -p ${PATHS.micromambaRoot} -y`, condarcPath, logLevel, PATHS.micromambaExe)
   const cmd2 = cmd.split(' ')
   return await executeSubproc(cmd2[0], cmd2.slice(1))
 }
 
-function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
-  return `${micromambaExe} ${command}` + (logLevel ? ` --log-level ${logLevel}` : '')
+function micromambaCmd (command, condarcPath, logLevel, micromambaExe = 'micromamba') {
+  return `${micromambaExe} ${command}` + (logLevel ? ` --log-level ${logLevel}` : '') + (condarcPath ? ` --rc-file ${condarcPath}` : '')
 }
 
-async function setupProfile (command, os, logLevel) {
+async function setupProfile (command, os, condarcPath, logLevel) {
   switch (os) {
-    case 'darwin': 
-      await executeMicromambaShell(command, 'bash', logLevel)
+    case 'darwin':
+      await executeMicromambaShell(command, 'bash', condarcPath, logLevel)
       // TODO need to fix a check in micromamba so that this works
       // https://github.com/mamba-org/mamba/issues/925
-      // await executeMicromambaShell(command, 'zsh', logLevel)
-      break;
+      // await executeMicromambaShell(command, 'zsh', condarcPath, logLevel)
+      break
     case 'linux':
-      await executeMicromambaShell(command, 'zsh', logLevel)
+      await executeMicromambaShell(command, 'zsh', condarcPath, logLevel)
       // On Linux, Micromamba modifies .bashrc but we want the modifications to be in .bash_profile.
       if (command === 'init') {
         await withMkdtemp(async tmpdir => {
           const oldHome = process.env.HOME
           process.env.HOME = tmpdir
-          await executeMicromambaShell(command, 'bash', logLevel)
+          await executeMicromambaShell(command, 'bash', condarcPath, logLevel)
           process.env.HOME = oldHome
           fs.appendFileSync(PATHS.bashprofile, '\n' + fs.readFileSync(path.join(tmpdir, '.bashrc')))
         })
       } else {
         // we still need to deinit for the regular .bashrc since `micromamba shell init` also changes other files, not only .bashrc
-        await executeMicromambaShell(command, 'bash', logLevel)
+        await executeMicromambaShell(command, 'bash', condarcPath, logLevel)
         // remove mamba initialize block from .bash_profile
-        const regexBlock = "\n# >>> mamba initialize >>>(?:\n|\r\n)?([\\s\\S]*?)# <<< mamba initialize <<<(?:\n|\r\n)?"
+        const regexBlock = '\n# >>> mamba initialize >>>(?:\n|\r\n)?([\\s\\S]*?)# <<< mamba initialize <<<(?:\n|\r\n)?'
         const bashProfile = fs.readFileSync(PATHS.bashprofile, 'utf8')
         const newBashProfile = bashProfile.replace(new RegExp(regexBlock, 'g'), '')
         fs.writeFileSync(PATHS.bashprofile, newBashProfile)
       }
-      break;
+      break
     case 'win32':
       if (await haveBash()) {
-        await executeMicromambaShell(command, 'bash', logLevel)
+        await executeMicromambaShell(command, 'bash', condarcPath, logLevel)
       }
       // https://github.com/mamba-org/mamba/issues/1756
-      await executeMicromambaShell(command, 'cmd.exe', logLevel)
-      await executeMicromambaShell(command, 'powershell', logLevel)
-      break;
+      await executeMicromambaShell(command, 'cmd.exe', condarcPath, logLevel)
+      await executeMicromambaShell(command, 'powershell', condarcPath, logLevel)
+      break
   }
 }
 
@@ -63380,8 +63380,8 @@ async function main () {
   const inputs = JSON.parse(core.getState('inputs'))
 
   if (useDeinit(inputs)) {
-    core.startGroup(`Deinitializing micromamba ...`)
-    await setupProfile('deinit', process.platform, inputs.logLevel)
+    core.startGroup('Deinitializing micromamba ...')
+    await setupProfile('deinit', process.platform, null, inputs.logLevel)
     core.endGroup()
   }
   if (!core.getState('mainRanSuccessfully')) {
