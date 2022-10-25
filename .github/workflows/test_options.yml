@@ -127,6 +127,8 @@ jobs:
       - name: check channels are correct
         run: |
           micromamba info > /tmp/info
+          cat /tmp/info
+          set -x
           if test "${{ matrix.environment-file }}${{ matrix.condarc-file }}${{ matrix.condarc-options }}${{ matrix.channels }}" = false; then
             # extra-specs only
             grep -q conda-forge /tmp/info
