@@ -220,12 +220,16 @@ async function createOrUpdateEnv (envName, envFilePath, extraSpecs, condarcPath,
   const action = fs.existsSync(envFolder) ? 'update' : 'create'
   const selectedExtraSpecs = selectSelectors(extraSpecs)
   core.info(`${action} env ${envName}`)
-  let cmd = micromambaCmd(`${action} -n ${envName} -y`, condarcPath, logLevel, PATHS.micromambaExe)
+  let cmd = micromambaCmd(`${action} -n ${envName} -y`, null, logLevel, PATHS.micromambaExe)
   if (selectedExtraSpecs.length) {
     cmd += ' ' + selectedExtraSpecs.map(e => `"${e}"`).join(' ')
   }
   if (envFilePath) {
     cmd += ' -f ' + envFilePath
+  }
+  // TODO
+  if (condarcPath) {
+    cmd += ` --rc-file ${condarcPath}`
   }
   await executeSubproc(cmd)
 }
