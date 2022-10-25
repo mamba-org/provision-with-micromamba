@@ -67601,16 +67601,13 @@ async function downloadMicromamba (micromambaUrl) {
 }
 
 function makeFinalCondaRcOptions (inputs, envYaml) {
-  let finalCondaRcOptions = {
+  const finalCondaRcOptions = {
     channel_priority: inputs.channelPriority,
     channel_alias: inputs.channelAlias,
-    channels: [...inputs.channels, ...(envYaml?.channels?.length && envYaml.channels)]
+    channels: [...inputs.channels, ...(envYaml?.channels?.length && envYaml.channels)],
+    ...yaml.load(inputs.condaRcOptions)
   }
-  const condaRcOptions = yaml.load(inputs.condaRcOptions)
-  if (condaRcOptions) {
-    finalCondaRcOptions = { ...finalCondaRcOptions, ...condaRcOptions }
-  }
-  if (!finalCondaRcOptions.channels?.length && !envYaml && !condaRcOptions?.channels?.length) {
+  if (!finalCondaRcOptions.channels?.length && !envYaml) {
     finalCondaRcOptions.channels = DEFAULT_CHANNELS
   }
   return finalCondaRcOptions
