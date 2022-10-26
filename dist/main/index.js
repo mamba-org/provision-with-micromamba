@@ -67610,11 +67610,10 @@ async function downloadMicromamba (micromambaUrl) {
 
 function makeFinalCondaRcOptions (inputs, envYaml, condarcHasChannels) {
   const condarcOptions = {
-    channel_priority: 'strict',
     ...yaml.load(inputs.condarcOptions)
   }
-  if (inputs.deprecatedChannelPriority && !condarcOptions.channel_priority) {
-    condarcOptions.channel_priority = inputs.deprecatedChannelPriority
+  if (!condarcOptions.channel_priority) {
+    condarcOptions.channel_priority = inputs.deprecatedChannelPriority || 'strict'
   }
   if (inputs.deprecatedChannels.length && !condarcOptions.channels) {
     condarcOptions.channels = inputs.deprecatedChannels
