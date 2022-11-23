@@ -26,11 +26,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # Download only
       - name: install mamba
         uses: ./
         with:
           environment-file: false
           environment-name: nofile
+      - run: |
+          micromamba info | grep -qv nofile
+          micromamba info | grep -q conda-forge
 
       - name: install mamba
         uses: ./
@@ -104,6 +108,9 @@ jobs:
       fail-fast: false
       matrix:
         environment-file: [false, environment.yml]
+        condarc-file: ['', .github/workflows/resources/channels_condarc]
+        condarc-options: ['', 'channels: [pytorch]']
+        channels: ['', 'main']
     steps:
       - uses: actions/checkout@v3
 
@@ -113,22 +120,30 @@ jobs:
           environment-file: ${{ matrix.environment-file }}
           environment-name: test-channels
           extra-specs: |
-            xtensor
-          channels: conda-forge,blah
+            ${{ matrix.condarc-options && 'cpuonly' || 'zlib' }}
+          channels: ${{ matrix.channels }}
+          condarc-file: ${{ matrix.condarc-file }}
+          condarc-options: ${{ matrix.condarc-options }}
       - name: check channels are correct
         run: |
-          CHANNEL_OPT=$(micromamba config get channels)
-          echo $CHANNEL_OPT
-          if [[ "$CHANNEL_OPT" != *"conda-forge"* ]]; then
-            exit 1;
-          fi
-          if [[ "$CHANNEL_OPT" != *"blah"* ]]; then
-            exit 1;
-          fi
-          if [[ "${{ matrix.environment-file }}" != "false" ]]; then
-            if [[ "$CHANNEL_OPT" != *"defaults"* ]]; then
-              exit 1;
-            fi
+          micromamba info > /tmp/info
+          cat /tmp/info
+          set -x
+          if test "${{ matrix.environment-file }}${{ matrix.condarc-file }}${{ matrix.condarc-options }}${{ matrix.channels }}" = false; then
+            # extra-specs only
+            grep -q conda-forge /tmp/info
+            ! grep -qE 'defaults|free|main|pytorch' /tmp/info
+          elif test -n "${{ matrix.condarc-options }}"; then
+            grep -q pytorch /tmp/info
+            ! grep -qE 'conda-forge|defaults|free|main' /tmp/info
+          elif test -n "${{ matrix.channels }}"; then
+            grep -q main /tmp/info
+            ! grep -qE 'conda-forge|defaults|free|pytorch' /tmp/info
+          elif test -n "${{ matrix.condarc-file }}"; then
+            grep -q free /tmp/info
+            ! grep -qE 'conda-forge|defaults|main|pytorch' /tmp/info
+          else
+            ! grep -qE 'conda-forge|defaults|free|main|pytorch' /tmp/info
           fi
 
   test_environment_without_name:

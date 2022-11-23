@@ -67131,12 +67131,12 @@ function micromambaCmd (command, logLevel, micromambaExe = 'micromamba') {
 
 async function setupProfile (command, os, logLevel) {
   switch (os) {
-    case 'darwin': 
+    case 'darwin':
       await executeMicromambaShell(command, 'bash', logLevel)
       // TODO need to fix a check in micromamba so that this works
       // https://github.com/mamba-org/mamba/issues/925
       // await executeMicromambaShell(command, 'zsh', logLevel)
-      break;
+      break
     case 'linux':
       await executeMicromambaShell(command, 'zsh', logLevel)
       // On Linux, Micromamba modifies .bashrc but we want the modifications to be in .bash_profile.
@@ -67152,12 +67152,12 @@ async function setupProfile (command, os, logLevel) {
         // we still need to deinit for the regular .bashrc since `micromamba shell init` also changes other files, not only .bashrc
         await executeMicromambaShell(command, 'bash', logLevel)
         // remove mamba initialize block from .bash_profile
-        const regexBlock = "\n# >>> mamba initialize >>>(?:\n|\r\n)?([\\s\\S]*?)# <<< mamba initialize <<<(?:\n|\r\n)?"
+        const regexBlock = '\n# >>> mamba initialize >>>(?:\n|\r\n)?([\\s\\S]*?)# <<< mamba initialize <<<(?:\n|\r\n)?'
         const bashProfile = fs.readFileSync(PATHS.bashprofile, 'utf8')
         const newBashProfile = bashProfile.replace(new RegExp(regexBlock, 'g'), '')
         fs.writeFileSync(PATHS.bashprofile, newBashProfile)
       }
-      break;
+      break
     case 'win32':
       if (await haveBash()) {
         await executeMicromambaShell(command, 'bash', logLevel)
@@ -67165,7 +67165,7 @@ async function setupProfile (command, os, logLevel) {
       // https://github.com/mamba-org/mamba/issues/1756
       await executeMicromambaShell(command, 'cmd.exe', logLevel)
       await executeMicromambaShell(command, 'powershell', logLevel)
-      break;
+      break
   }
 }
 
@@ -67459,11 +67459,13 @@ const io = __nccwpck_require__(7436)
 
 const { PATHS, withMkdtemp, executeSubproc, setupProfile, micromambaCmd, haveBash } = __nccwpck_require__(4962)
 
-function getInputAsArray (name) {
+const DEFAULT_CHANNELS = ['conda-forge']
+
+function getInputAsArray (name, sep = '\n') {
   // From https://github.com/actions/cache/blob/main/src/utils/actionUtils.ts
   return core
     .getInput(name)
-    .split('\n')
+    .split(sep)
     .map(s => s.trim())
     .filter(x => x !== '')
 }
@@ -67533,6 +67535,14 @@ async function retry (callback, backoffTimes = [2000, 5000, 10000]) {
   }
 }
 
+function yamlFileHasKey (path, key) {
+  try {
+    return yaml.load(fs.readFileSync(path))[key] != null
+  } catch {
+    return false
+  }
+}
+
 function dumpFileContents (path) {
   core.info(`--- Contents of ${path} ---\n${fs.readFileSync(path)}\n--- End contents of ${path} ---`)
 }
@@ -67598,29 +67608,20 @@ async function downloadMicromamba (micromambaUrl) {
   }
 }
 
-function makeCondarcOpts (inputs, extraChannels) {
-  let condarcOpts = {
-    channel_priority: inputs.channelPriority
+function makeFinalCondaRcOptions (inputs, envYaml, condarcHasChannels) {
+  const condarcOptions = {
+    ...yaml.load(inputs.condarcOptions)
   }
-  if (inputs.channelAlias) {
-    condarcOpts.channel_alias = inputs.channelAlias
+  if (!condarcOptions.channel_priority) {
+    condarcOptions.channel_priority = inputs.deprecatedChannelPriority || 'strict'
   }
-  let channels = []
-  if (inputs.channels) {
-    channels = inputs.channels.split(',').map(s => s.trim())
+  if (inputs.deprecatedChannels.length && !condarcOptions.channels) {
+    condarcOptions.channels = inputs.deprecatedChannels
   }
-  if (extraChannels) {
-    channels.push.apply(channels, extraChannels)
+  if (!condarcOptions.channels?.length && !envYaml && !condarcHasChannels) {
+    condarcOptions.channels = DEFAULT_CHANNELS
   }
-  if (channels) {
-    condarcOpts.channels = channels
-  }
-
-  const moreOpts = yaml.load(inputs.condaRcOptions)
-  if (moreOpts) {
-    condarcOpts = { ...condarcOpts, ...moreOpts }
-  }
-  return condarcOpts
+  return condarcOptions
 }
 
 async function installMicromamba (inputs) {
@@ -67647,8 +67648,7 @@ async function installMicromamba (inputs) {
 function isSelected (item) {
   if (/sel\(.*\):.*/gi.test(item)) {
     let condaPlatform = getCondaArch().split('-')[0]
-    if (["linux", "osx"].includes(condaPlatform))
-      condaPlatform += '|unix';
+    if (['linux', 'osx'].includes(condaPlatform)) { condaPlatform += '|unix' }
     return new RegExp(`sel\\(${condaPlatform}\\):.*`, 'gi').test(item)
   }
   return true
@@ -67778,7 +67778,7 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
 // --- Main ---
 
 async function main () {
-  // Using getInput is not safe in a post action for templated inputs. 
+  // Using getInput is not safe in a post action for templated inputs.
   // Therefore, we need to save the input values beforehand to the state.
   const inputs = {
     // Basic options
@@ -67786,9 +67786,9 @@ async function main () {
     envName: core.getInput('environment-name'),
     micromambaVersion: core.getInput('micromamba-version'),
     extraSpecs: getInputAsArray('extra-specs'),
-    channels: core.getInput('channels'),
-    condaRcFile: core.getInput('condarc-file'),
-    channelPriority: core.getInput('channel-priority'),
+    deprecatedChannels: getInputAsArray('channels', ','),
+    condarcFile: core.getInput('condarc-file'),
+    deprecatedChannelPriority: core.getInput('channel-priority'),
 
     // Caching options
     cacheDownloads: core.getBooleanInput('cache-downloads'),
@@ -67801,7 +67801,7 @@ async function main () {
 
     // Advanced options
     logLevel: core.getInput('log-level'),
-    condaRcOptions: core.getInput('condarc-options'),
+    condarcOptions: core.getInput('condarc-options'),
     installerUrl: core.getInput('installer-url'),
     postDeinit: core.getInput('post-deinit')
   }
@@ -67817,11 +67817,14 @@ async function main () {
   }
 
   // Setup .condarc
-  const condarcOpts = makeCondarcOpts(inputs, envYaml?.channels)
-  if (inputs.condaRcFile) {
-    fs.copyFileSync(inputs.condaRcFile, PATHS.condarc)
+  const condarcHasChannels = inputs.condarcFile && yamlFileHasKey(inputs.condarcFile, 'channels')
+  const condarcOptions = makeFinalCondaRcOptions(inputs, envYaml, condarcHasChannels)
+  if (inputs.condarcFile) {
+    const condarcContents = fs.readFileSync(inputs.condarcFile)
+    fs.writeFileSync(PATHS.condarc, yaml.dump(condarcOptions) + condarcContents)
+  } else {
+    fs.writeFileSync(PATHS.condarc, yaml.dump(condarcOptions))
   }
-  fs.appendFileSync(PATHS.condarc, yaml.dump(condarcOpts))
   core.debug(`Contents of ${PATHS.condarc}\n${fs.readFileSync(PATHS.condarc)}`)
 
   await installMicromamba(inputs)

@@ -9,7 +9,7 @@ inputs:
     description: >-
       Required.
       Path to the `environment.yml` or `.lock` file for the Conda environment OR `false`.
-      If `false`, only *extra-specs* will be considered and you should provide *channels*.
+      If `false`, only *extra-specs* will be considered.
       If both *environment-file* and *extra-specs* are empty,
       no environment will be created (only `micromamba` will be installed).
       See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file)
@@ -44,18 +44,17 @@ inputs:
       are available.
   channels:
     description: >-
-      Comma separated list of channels to use in order of priority (eg., `conda-forge,my-private-channel`)
+      DEPRECATED, alias for `condarc-options: channels:`.
   condarc-file:
     description: >-
       Path to a `.condarc` file to use. See the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/)
       for more information.
   channel-priority:
     description: >-
+      DEPRECATED, alias for `condarc-options: channel_priority:`.
       Channel priority to use. One of `"strict"`, `"flexible"`, and `"disabled"`.
       See https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html#strict-channel-priority
       for more information.
-    required: true
-    default: strict
 
   # Caching options
   cache-downloads:
@@ -102,13 +101,16 @@ inputs:
     default: https://micro.mamba.pm/api/micromamba
   condarc-options:
     description: |-
-      More options to append to `.condarc`. Must be a string of valid YAML:
+      More options to prepend to `.condarc`. Must be a string of valid YAML:
 
       ```yaml
       condarc-options: |
         proxy_servers:
           http: ...
       ```
+
+      Defaults to `channel_priority: strict`, and an additional `channels: conda-forge`
+      if `environment-file` is `false` and no `channels` are given in `condarc-file` and `condarc-options`.
   post-deinit:
     description: |-
       Attempt to undo any modifications done to `.bashrc` etc. in the post action of the workflow.
