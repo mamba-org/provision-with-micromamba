@@ -125,11 +125,14 @@ jobs:
 
       - name: check channels are correct
         run: |
+          set -x
           CHANNEL_OPT=$(micromamba config get channels)
           echo "$CHANNEL_OPT"
           [[ "$CHANNEL_OPT" =~ conda-forge ]]
           if [[ "${{ matrix.channels }}" =~ blah ]]; then
             [[ "$CHANNEL_OPT" =~ blah ]]
+          else
+            ! [[ "$CHANNEL_OPT" =~ blah ]]
           fi
           if [[ "${{ matrix.environment-file }}" = "false" ]]; then
             ! [[ "$CHANNEL_OPT" =~ defaults ]]
