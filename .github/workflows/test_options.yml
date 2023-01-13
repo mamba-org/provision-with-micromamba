@@ -106,9 +106,13 @@ jobs:
         environment-file: [false, environment.yml]
         condarc-file: ["", ".github/workflows/resources/condarc1"]
         channels: ["", "conda-forge,blah"]
-      exclude:
-        - condarc-file: ""
-          channels: ""
+        exclude:
+          - environment-file: false
+            condarc-file: ""
+            channels: ""
+          - environment-file: environment.yml
+            condarc-file: ""
+            channels: ""
     steps:
       - uses: actions/checkout@v3
 
