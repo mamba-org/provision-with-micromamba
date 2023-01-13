@@ -137,7 +137,7 @@ jobs:
           if [[ "${{ matrix.environment-file }}" = "false" ]]; then
             ! [[ "$CHANNEL_OPT" =~ defaults ]]
           else
-            [[ "$CHANNEL_OPTS" =~ defaults ]]
+            [[ "$CHANNEL_OPT" =~ defaults ]]
           fi
 
   test_environment_without_name:
