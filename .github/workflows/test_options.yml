@@ -104,6 +104,8 @@ jobs:
       fail-fast: false
       matrix:
         environment-file: [false, environment.yml]
+        condarc-file: ["", ".github/workflows/resources/condarc1"]
+        channels: ["", "conda-forge,blah"]
     steps:
       - uses: actions/checkout@v3
 
@@ -112,9 +114,11 @@ jobs:
         with:
           environment-file: ${{ matrix.environment-file }}
           environment-name: test-channels
+          channels: ${{ matrix.channels }}
+          condarc-file: ${{ matrix.condarc-file }}
           extra-specs: |
             xtensor
-          channels: conda-forge,blah
+
       - name: check channels are correct
         run: |
           CHANNEL_OPT=$(micromamba config get channels)
