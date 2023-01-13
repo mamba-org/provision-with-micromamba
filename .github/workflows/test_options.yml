@@ -106,6 +106,10 @@ jobs:
         environment-file: [false, environment.yml]
         condarc-file: ["", ".github/workflows/resources/condarc1"]
         channels: ["", "conda-forge,blah"]
+        E R C
+        0 0 1 x blah
+        0 1 0 x pytorch
+        1 0 0 x defaults
         exclude:
           - environment-file: false
             condarc-file: ""
@@ -126,8 +130,12 @@ jobs:
       - name: check channels are correct
         run: |
           set -x
+          ERC="$([[ '${{ matrix.environment-file }}' = false ]] && echo 0 || echo 1)"
+          ERC="${ERC}$([ -z '${{ matrix.condarc-file }}' ]] && echo 0 || echo 1)"
+          ERC="${ERC}$([ -z '${{ matrix.channels }}' ]] && echo 0 || echo 1)"
+          echo $ERC
+          exit 0
           CHANNEL_OPT=$(micromamba config get channels)
-          echo "$CHANNEL_OPT"
           [[ "$CHANNEL_OPT" =~ conda-forge ]]
           if [[ "${{ matrix.channels }}" =~ blah ]]; then
             [[ "$CHANNEL_OPT" =~ blah ]]
