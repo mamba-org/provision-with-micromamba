@@ -110,9 +110,6 @@ jobs:
           - environment-file: false
             condarc-file: ""
             channels: ""
-          - environment-file: environment.yml
-            condarc-file: ""
-            channels: ""
     steps:
       - uses: actions/checkout@v3
 
