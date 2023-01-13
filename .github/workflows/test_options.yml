@@ -106,6 +106,9 @@ jobs:
         environment-file: [false, environment.yml]
         condarc-file: ["", ".github/workflows/resources/condarc1"]
         channels: ["", "conda-forge,blah"]
+      exclude:
+        - condarc-file: ""
+          channels: ""
     steps:
       - uses: actions/checkout@v3
 
@@ -117,7 +120,7 @@ jobs:
           channels: ${{ matrix.channels }}
           condarc-file: ${{ matrix.condarc-file }}
           extra-specs: |
-            xtensor
+            ffmpeg
 
       - name: check channels are correct
         run: |
