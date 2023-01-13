@@ -1,1 +1,3 @@
-channels: [pytorch]
+channels:
+  - pytorch
+  - conda-forge
