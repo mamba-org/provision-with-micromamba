@@ -13,7 +13,7 @@ const { PATHS, withMkdtemp, executeSubproc, setupProfile, micromambaCmd, haveBas
 
 function stringToArray (s, sep) {
   return s
-    .split('\n')
+    .split(sep)
     .map(x => x.trim())
     .filter(x => x !== '')
 }
