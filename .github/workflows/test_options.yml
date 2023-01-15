@@ -104,6 +104,12 @@ jobs:
       fail-fast: false
       matrix:
         environment-file: [false, environment.yml]
+        condarc-file: ["", ".github/workflows/resources/condarc1"]
+        channels: ["", "conda-forge,blah"]
+        exclude:
+          - environment-file: false
+            condarc-file: ""
+            channels: ""
     steps:
       - uses: actions/checkout@v3
 
@@ -112,24 +118,39 @@ jobs:
         with:
           environment-file: ${{ matrix.environment-file }}
           environment-name: test-channels
+          channels: ${{ matrix.channels }}
+          condarc-file: ${{ matrix.condarc-file }}
           extra-specs: |
-            xtensor
-          channels: conda-forge,blah
+            ffmpeg
+
       - name: check channels are correct
         run: |
-          CHANNEL_OPT=$(micromamba config get channels)
-          echo $CHANNEL_OPT
-          if [[ "$CHANNEL_OPT" != *"conda-forge"* ]]; then
-            exit 1;
+          set -x
+          cat ~/.condarc
+
+          # If a single channel configuration source is provided, channels should
+          # be taken from that source. Otherwise, we don't make any guarantees.
+
+          # Channels source: [e]nvironment.yml, [r]c file, [c]hannels
+          erc="$([ '${{ matrix.environment-file }}' = false ] && echo 0 || echo 1)"
+          erc="${erc}$([ -z '${{ matrix.condarc-file }}' ] && echo 0 || echo 1)"
+          erc="${erc}$([ -z '${{ matrix.channels }}' ] && echo 0 || echo 1)"
+
+          channels=$(micromamba config get channels)
+          # [d]efaults, [p]ytorch, [b]lah
+          dpb="$([[ "$channels" =~ defaults ]] && echo 1 || echo 0)"
+          dpb="${dpb}$([[ "$channels" =~ pytorch ]] && echo 1 || echo 0)"
+          dpb="${dpb}$([[ "$channels" =~ blah ]] && echo 1 || echo 0)"
+
+          if [ $(echo $erc | grep -o 1 | wc -l) = 1 ]; then
+            [ $dpb = $erc ]
+            # There should be no duplicate "channels:" section in .condarc.
+            # TODO: This should be true in any case!
+            [ 1 = $(grep "channels:" ~/.condarc | wc -l) ]
           fi
-          if [[ "$CHANNEL_OPT" != *"blah"* ]]; then
-            exit 1;
-          fi
-          if [[ "${{ matrix.environment-file }}" != "false" ]]; then
-            if [[ "$CHANNEL_OPT" != *"defaults"* ]]; then
-              exit 1;
-            fi
-          fi
+
+
+          # TODO: check that ffmpeg is installed from the expected channel
 
   test_environment_without_name:
     name: "Test environment.yml without name: attribute"

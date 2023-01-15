@@ -11,12 +11,10 @@ const io = require('@actions/io')
 
 const { PATHS, withMkdtemp, executeSubproc, setupProfile, micromambaCmd, haveBash } = require('./util')
 
-function getInputAsArray (name) {
-  // From https://github.com/actions/cache/blob/main/src/utils/actionUtils.ts
-  return core
-    .getInput(name)
-    .split('\n')
-    .map(s => s.trim())
+function parseList (s, sep) {
+  return s
+    .split(sep)
+    .map(x => x.trim())
     .filter(x => x !== '')
 }
 
@@ -159,12 +157,12 @@ function makeCondarcOpts (inputs, extraChannels) {
   }
   let channels = []
   if (inputs.channels) {
-    channels = inputs.channels.split(',').map(s => s.trim())
+    channels = parseList(inputs.channels, ',')
   }
-  if (extraChannels) {
+  if (extraChannels?.length) {
     channels.push.apply(channels, extraChannels)
   }
-  if (channels) {
+  if (channels.length) {
     condarcOpts.channels = channels
   }
 
@@ -199,8 +197,7 @@ async function installMicromamba (inputs) {
 function isSelected (item) {
   if (/sel\(.*\):.*/gi.test(item)) {
     let condaPlatform = getCondaArch().split('-')[0]
-    if (["linux", "osx"].includes(condaPlatform))
-      condaPlatform += '|unix';
+    if (['linux', 'osx'].includes(condaPlatform)) { condaPlatform += '|unix' }
     return new RegExp(`sel\\(${condaPlatform}\\):.*`, 'gi').test(item)
   }
   return true
@@ -330,14 +327,14 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
 // --- Main ---
 
 async function main () {
-  // Using getInput is not safe in a post action for templated inputs. 
+  // Using getInput is not safe in a post action for templated inputs.
   // Therefore, we need to save the input values beforehand to the state.
   const inputs = {
     // Basic options
     envFile: core.getInput('environment-file'),
     envName: core.getInput('environment-name'),
     micromambaVersion: core.getInput('micromamba-version'),
-    extraSpecs: getInputAsArray('extra-specs'),
+    extraSpecs: parseList(core.getInput('extra-specs'), '\n'),
     channels: core.getInput('channels'),
     condaRcFile: core.getInput('condarc-file'),
     channelPriority: core.getInput('channel-priority'),
