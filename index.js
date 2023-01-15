@@ -158,10 +158,10 @@ function makeCondarcOpts (inputs, extraChannels) {
     condarcOpts.channel_alias = inputs.channelAlias
   }
   let channels = []
-  if (inputs.channels?.length) {
+  if (inputs.channels) {
     channels = inputs.channels.split(',').map(s => s.trim())
   }
-  if (extraChannels?.length) {
+  if (extraChannels) {
     channels.push.apply(channels, extraChannels)
   }
   if (channels.length) {
