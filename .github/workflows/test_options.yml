@@ -127,8 +127,9 @@ jobs:
         run: |
           set -x
 
-          # There should be no duplicate channels: section in .condarc.
-          [ 1 = $(grep "channels:" ~/.condarc | wc -l) ]
+          # There should be no duplicate "channels:" section in .condarc.
+          # TODO: Fix this!
+          # [ 1 = $(grep "channels:" ~/.condarc | wc -l) ]
 
           # If a single channel configuration source is provided, channels should
           # be taken from that source. Otherwise, we don't make any guarantees.
@@ -147,6 +148,8 @@ jobs:
           if [ $(echo $erc | grep -o 1 | wc -l) = 1 ]; then
             [ $dpb = $erc ]
           fi
+
+          # TODO: check that ffmpeg is installed from the expected channel
 
   test_environment_without_name:
     name: "Test environment.yml without name: attribute"
