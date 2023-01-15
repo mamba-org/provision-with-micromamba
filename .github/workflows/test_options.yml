@@ -134,9 +134,9 @@ jobs:
           # [d]efaults, [p]ytorch, [b]lah
           dpb="$([[ "$CHANNEL_OPT" =~ defaults ]] && echo 1 || echo 0)"
           dpb="${dpb}$([[ "$CHANNEL_OPT" =~ pytorch ]] && echo 1 || echo 0)"
-          dpb="$${dpb}([[ "$CHANNEL_OPT" =~ blah ]] && echo 1 || echo 0)"
+          dpb="${dpb}$([[ "$CHANNEL_OPT" =~ blah ]] && echo 1 || echo 0)"
 
-          if [ $(echo $erc | grep -o 1 | wc -l) = 1]; then
+          if [ $(echo $erc | grep -o 1 | wc -l) = 1 ]; then
             [ $dpb = $erc ]
           fi
 
