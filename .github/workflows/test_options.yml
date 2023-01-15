@@ -131,10 +131,11 @@ jobs:
           erc="${erc}$([ -z '${{ matrix.condarc-file }}' ] && echo 0 || echo 1)"
           erc="${erc}$([ -z '${{ matrix.channels }}' ] && echo 0 || echo 1)"
 
+          channels=$(micromamba config get channels)
           # [d]efaults, [p]ytorch, [b]lah
-          dpb="$([[ "$CHANNEL_OPT" =~ defaults ]] && echo 1 || echo 0)"
-          dpb="${dpb}$([[ "$CHANNEL_OPT" =~ pytorch ]] && echo 1 || echo 0)"
-          dpb="${dpb}$([[ "$CHANNEL_OPT" =~ blah ]] && echo 1 || echo 0)"
+          dpb="$([[ "$channels" =~ defaults ]] && echo 1 || echo 0)"
+          dpb="${dpb}$([[ "$channels" =~ pytorch ]] && echo 1 || echo 0)"
+          dpb="${dpb}$([[ "$channels" =~ blah ]] && echo 1 || echo 0)"
 
           if [ $(echo $erc | grep -o 1 | wc -l) = 1 ]; then
             [ $dpb = $erc ]
