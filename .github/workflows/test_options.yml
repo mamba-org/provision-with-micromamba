@@ -126,6 +126,7 @@ jobs:
       - name: check channels are correct
         run: |
           set -x
+          cat ~/.condarc
 
           # If a single channel configuration source is provided, channels should
           # be taken from that source. Otherwise, we don't make any guarantees.

@@ -164,7 +164,7 @@ function makeCondarcOpts (inputs, extraChannels) {
   if (extraChannels) {
     channels.push.apply(channels, extraChannels)
   }
-  if (channels.length) {
+  if (channels) {
     condarcOpts.channels = channels
   }
 
