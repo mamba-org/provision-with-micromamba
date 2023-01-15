@@ -126,22 +126,18 @@ jobs:
       - name: check channels are correct
         run: |
           set -x
-          ERC="$([ '${{ matrix.environment-file }}' = false ] && echo 0 || echo 1)"
-          ERC="${ERC}$([ -z '${{ matrix.condarc-file }}' ] && echo 0 || echo 1)"
-          ERC="${ERC}$([ -z '${{ matrix.channels }}' ] && echo 0 || echo 1)"
-          echo $ERC
-          exit 0
-          CHANNEL_OPT=$(micromamba config get channels)
-          [[ "$CHANNEL_OPT" =~ conda-forge ]]
-          if [[ "${{ matrix.channels }}" =~ blah ]]; then
-            [[ "$CHANNEL_OPT" =~ blah ]]
-          else
-            ! [[ "$CHANNEL_OPT" =~ blah ]]
-          fi
-          if [[ "${{ matrix.environment-file }}" = "false" ]]; then
-            ! [[ "$CHANNEL_OPT" =~ defaults ]]
-          else
-            [[ "$CHANNEL_OPT" =~ defaults ]]
+          # [e]nvironment.yml, [r]c file, [c]hannels
+          erc="$([ '${{ matrix.environment-file }}' = false ] && echo 0 || echo 1)"
+          erc="${erc}$([ -z '${{ matrix.condarc-file }}' ] && echo 0 || echo 1)"
+          erc="${erc}$([ -z '${{ matrix.channels }}' ] && echo 0 || echo 1)"
+
+          # [d]efaults, [p]ytorch, [b]lah
+          dpb="$([[ "$CHANNEL_OPT" =~ defaults ]] && echo 1 || echo 0)"
+          dpb="${dpb}$([[ "$CHANNEL_OPT" =~ pytorch ]] && echo 1 || echo 0)"
+          dpb="$${dpb}([[ "$CHANNEL_OPT" =~ blah ]] && echo 1 || echo 0)"
+
+          if [ $(echo $erc | grep -o 1 | wc -l) = 1]; then
+            [ $dpb = $erc ]
           fi
 
   test_environment_without_name:
