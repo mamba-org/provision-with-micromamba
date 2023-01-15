@@ -127,6 +127,9 @@ jobs:
         run: |
           set -x
 
+          # There should be no duplicate "channels:" section in .condarc.
+          [ 1 = $(grep "channels:" ~/.condarc | wc -l) ]
+
           # If a single channel configuration source is provided, channels should
           # be taken from that source. Otherwise, we don't make any guarantees.
 
@@ -142,9 +145,6 @@ jobs:
           dpb="${dpb}$([[ "$channels" =~ blah ]] && echo 1 || echo 0)"
 
           if [ $(echo $erc | grep -o 1 | wc -l) = 1 ]; then
-            # There should be no duplicate "channels:" section in .condarc.
-            # TODO: This should be true even with multiple channel sources!
-            [ 1 = $(grep "channels:" ~/.condarc | wc -l) ]
             [ $dpb = $erc ]
           fi
 
