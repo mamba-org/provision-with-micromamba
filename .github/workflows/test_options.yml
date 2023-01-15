@@ -127,9 +127,13 @@ jobs:
         run: |
           set -x
 
+          # There should be no duplicate channels: section in .condarc.
           [ 1 = $(grep "channels:" ~/.condarc | wc -l) ]
 
-          # [e]nvironment.yml, [r]c file, [c]hannels
+          # If a single channel configuration source is provided, channels should
+          # be taken from that source. Otherwise, we don't make any guarantees.
+
+          # Channels source: [e]nvironment.yml, [r]c file, [c]hannels
           erc="$([ '${{ matrix.environment-file }}' = false ] && echo 0 || echo 1)"
           erc="${erc}$([ -z '${{ matrix.condarc-file }}' ] && echo 0 || echo 1)"
           erc="${erc}$([ -z '${{ matrix.channels }}' ] && echo 0 || echo 1)"
