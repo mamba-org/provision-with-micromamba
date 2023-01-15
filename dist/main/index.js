@@ -67459,12 +67459,10 @@ const io = __nccwpck_require__(7436)
 
 const { PATHS, withMkdtemp, executeSubproc, setupProfile, micromambaCmd, haveBash } = __nccwpck_require__(4962)
 
-function getInputAsArray (name) {
-  // From https://github.com/actions/cache/blob/main/src/utils/actionUtils.ts
-  return core
-    .getInput(name)
+function stringToArray (s, sep) {
+  return s
     .split('\n')
-    .map(s => s.trim())
+    .map(x => x.trim())
     .filter(x => x !== '')
 }
 
@@ -67607,12 +67605,12 @@ function makeCondarcOpts (inputs, extraChannels) {
   }
   let channels = []
   if (inputs.channels) {
-    channels = inputs.channels.split(',').map(s => s.trim())
+    channels = stringToArray(inputs.channels, ',')
   }
-  if (extraChannels) {
+  if (extraChannels?.length) {
     channels.push.apply(channels, extraChannels)
   }
-  if (channels) {
+  if (channels.length) {
     condarcOpts.channels = channels
   }
 
@@ -67784,7 +67782,7 @@ async function main () {
     envFile: core.getInput('environment-file'),
     envName: core.getInput('environment-name'),
     micromambaVersion: core.getInput('micromamba-version'),
-    extraSpecs: getInputAsArray('extra-specs'),
+    extraSpecs: stringToArray('extra-specs', '\n'),
     channels: core.getInput('channels'),
     condaRcFile: core.getInput('condarc-file'),
     channelPriority: core.getInput('channel-priority'),
