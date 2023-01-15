@@ -334,7 +334,7 @@ async function main () {
     envFile: core.getInput('environment-file'),
     envName: core.getInput('environment-name'),
     micromambaVersion: core.getInput('micromamba-version'),
-    extraSpecs: stringToArray('extra-specs', '\n'),
+    extraSpecs: stringToArray(core.getInput('extra-specs'), '\n'),
     channels: core.getInput('channels'),
     condaRcFile: core.getInput('condarc-file'),
     channelPriority: core.getInput('channel-priority'),
