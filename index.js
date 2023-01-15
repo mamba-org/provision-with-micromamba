@@ -11,7 +11,7 @@ const io = require('@actions/io')
 
 const { PATHS, withMkdtemp, executeSubproc, setupProfile, micromambaCmd, haveBash } = require('./util')
 
-function stringToArray (s, sep) {
+function parseList (s, sep) {
   return s
     .split(sep)
     .map(x => x.trim())
@@ -157,7 +157,7 @@ function makeCondarcOpts (inputs, extraChannels) {
   }
   let channels = []
   if (inputs.channels) {
-    channels = stringToArray(inputs.channels, ',')
+    channels = parseList(inputs.channels, ',')
   }
   if (extraChannels?.length) {
     channels.push.apply(channels, extraChannels)
@@ -334,7 +334,7 @@ async function main () {
     envFile: core.getInput('environment-file'),
     envName: core.getInput('environment-name'),
     micromambaVersion: core.getInput('micromamba-version'),
-    extraSpecs: stringToArray(core.getInput('extra-specs'), '\n'),
+    extraSpecs: parseList(core.getInput('extra-specs'), '\n'),
     channels: core.getInput('channels'),
     condaRcFile: core.getInput('condarc-file'),
     channelPriority: core.getInput('channel-priority'),
