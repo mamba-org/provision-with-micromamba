@@ -39,6 +39,7 @@ extra-specs: |
   python=3.10
   xtensor
 ```
+
 Note that selectors
 (e.g. `sel(linux): my-linux-package`, `sel(osx): my-osx-package`, `sel(win): my-win-package`)
 are available.
