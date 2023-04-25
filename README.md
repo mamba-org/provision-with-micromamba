@@ -1,6 +1,11 @@
-# provision-with-micromamba
+<h3 align="center">⛔️ This Project is deprecated and no longer gets maintained!</h3>
 
+Please use the [mamba-org/setup-micromamba](https://github.com/mamba-org/setup-micromamba) action instead.
+
+![Deprecated](https://img.shields.io/badge/Status-Deprecated-critical)
 [![test](https://github.com/mamba-org/provision-with-micromamba/workflows/test/badge.svg)](https://github.com/mamba-org/provision-with-micromamba/actions?query=workflow%3Atest)
+
+# provision-with-micromamba
 
 GitHub Action to provision a CI instance using [micromamba](https://github.com/mamba-org/mamba#micromamba).
 
