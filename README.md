@@ -1,4 +1,4 @@
-<h3 align="center">⛔️ This Project is deprecated and no longer gets maintained!</h3>
+<h3 align="center">⛔️ This project is deprecated and no longer gets maintained!</h3>
 
 Please use the [mamba-org/setup-micromamba](https://github.com/mamba-org/setup-micromamba) action instead.
 
