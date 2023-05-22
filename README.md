@@ -17,7 +17,7 @@ The most important difference for migrating is that in `setup-micromamba` you ne
 ## Example 1
 
 ```yml
-- uses: mamba-org/provision-with-micromamba@main
+- uses: mamba-org/provision-with-micromamba@v16
   with:
     extra-specs: |
       python=3.10
@@ -54,7 +54,7 @@ becomes
 ## Example 2
 
 ```yml
-- uses: mamba-org/provision-with-micromamba@v15
+- uses: mamba-org/provision-with-micromamba@main
   with:
     micromamba-version: '1.2.0'
     environment-file: false
