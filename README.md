@@ -1,6 +1,109 @@
-# provision-with-micromamba
+<h3 align="center">⛔️ This project is deprecated and no longer gets maintained!</h3>
 
+Please use the [mamba-org/setup-micromamba](https://github.com/mamba-org/setup-micromamba) action instead.
+
+![Deprecated](https://img.shields.io/badge/Status-Deprecated-critical)
 [![test](https://github.com/mamba-org/provision-with-micromamba/workflows/test/badge.svg)](https://github.com/mamba-org/provision-with-micromamba/actions?query=workflow%3Atest)
+
+# Migration to `setup-micromamba`
+
+This action is deprecated and will no longer get maintained due to it being superseded by [`setup-micromamba`](https://github.com/mamba-org/setup-micromamba).
+See [mamba-org/setup-micromamba#70](https://github.com/mamba-org/setup-micromamba/issues/70), [mamba-org/provision-with-micromamba#103](https://github.com/mamba-org/provision-with-micromamba/issues/103) and [mamba-org/provision-with-micromamba#114](https://github.com/mamba-org/provision-with-micromamba/issues/114) for reasons.
+
+The most important difference for migrating is that in `setup-micromamba` you need to specify the `environment-file` argument while `provision-with-micromamba` assumed `environment.yml` by default.
+
+`extra-specs` is now called `create-args` and should be used for all arguments that `micromamba create` supports.
+
+## Example 1 (`environment-file`, `extra-specs`, `cache-env`, semantic versioning)
+
+```yml
+- uses: mamba-org/provision-with-micromamba@v16
+  with:
+    extra-specs: |
+      python=3.10
+      numpy
+    cache-env: true
+```
+
+becomes
+
+```yml
+  # we now use semantic versioning for the action
+  # you could also use `...@v1.4.1`
+  # or the git sha directly `...@5d5dbebd87f7b9358c403c7a66651fa92b310105`
+- uses: mamba-org/setup-micromamba@v1
+  with:
+    # environment-file is not assumed anymore
+    environment-file: environment.yml
+    create-args: >- # beware the >- instead of |, we don't split on newlines but on spaces
+      python=3.10
+      numpy
+    # now called cache-environment
+    cache-environment: true
+```
+
+## Example 2 (`micromamba-version`, `environment-file: false`, `channels`)
+
+```yml
+- uses: mamba-org/provision-with-micromamba@main
+  with:
+    micromamba-version: '1.2.0'
+    environment-file: false
+    environment-name: myenv
+    extra-specs: |
+      python=3.10
+      numpy
+    channels: conda-forge
+```
+
+becomes
+
+```yml
+- uses: mamba-org/setup-micromamba@v1
+  with:
+    # all supported versions are fetched from https://github.com/mamba-org/micromamba-releases/releases now and contain the build number
+    micromamba-version: '1.2.0-1'
+    # don't provide environment-file as argument if you don't want to specify one
+    environment-name: myenv
+    create-args: >-
+      python=3.10
+      numpy
+    # conda-forge is the default channel now and does not need to be specified
+```
+
+## Example 3 (`channels`, `channel-priority`)
+
+```yml
+- uses: mamba-org/provision-with-micromamba@v16
+  with:
+    environment-file: false
+    extra-specs: |
+      python=3.10
+      numpy
+    channels: conda-forge,bioconda
+    channel-priority: strict
+```
+
+becomes
+
+```yml
+- uses: mamba-org/setup-micromamba@v1
+  with:
+    create-args: >-
+      python=3.10
+      numpy
+    # arguments such as channel or channel-priority that belong in the condarc should be specified there
+    # or in a .condarc file which can be referenced with `condarc-file: .condarc`
+    condarc: |
+      channels:
+        - conda-forge
+        - bioconda
+      channel_priority: strict
+```
+
+---
+
+# provision-with-micromamba
 
 GitHub Action to provision a CI instance using [micromamba](https://github.com/mamba-org/mamba#micromamba).
 
