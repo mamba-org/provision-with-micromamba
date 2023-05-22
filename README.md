@@ -80,6 +80,8 @@ becomes
     # conda-forge is the default channel now and does not need to be specified
 ```
 
+---
+
 # provision-with-micromamba
 
 GitHub Action to provision a CI instance using [micromamba](https://github.com/mamba-org/mamba#micromamba).
