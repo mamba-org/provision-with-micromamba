@@ -14,7 +14,7 @@ The most important difference for migrating is that in `setup-micromamba` you ne
 
 `extra-specs` is now called `create-args` and should be used for all arguments that `micromamba create` supports.
 
-## Example 1
+## Example 1 (`environment-file`, `extra-specs`, `cache-env`, semantic versioning)
 
 ```yml
 - uses: mamba-org/provision-with-micromamba@v16
@@ -42,37 +42,7 @@ becomes
     cache-environment: true
 ```
 
-## Example 2
-
-```yml
-- uses: mamba-org/provision-with-micromamba@v16
-  with:
-    environment-file: false
-    extra-specs: |
-      python=3.10
-      numpy
-    channels: conda-forge,bioconda
-    channel-priority: strict
-```
-
-becomes
-
-```yml
-- uses: mamba-org/setup-micromamba@v1
-  with:
-    create-args: >- # beware the >- instead of |, we don't split on newlines but on spaces
-      python=3.10
-      numpy
-    # arguments such as channel or channel-priority that belong in the condarc should be specified there
-    # or in a .condarc file which can be referenced with `condarc-file: .condarc`
-    condarc: |
-      channels:
-        - conda-forge
-        - bioconda
-      channel_priority: strict
-```
-
-## Example 3
+## Example 2 (`micromamba-version`, `environment-file: false`, `channels`)
 
 ```yml
 - uses: mamba-org/provision-with-micromamba@main
@@ -95,10 +65,40 @@ becomes
     micromamba-version: '1.2.0-1'
     # don't provide environment-file as argument if you don't want to specify one
     environment-name: myenv
-    create-args: >- # beware the >- instead of |
+    create-args: >-
       python=3.10
       numpy
     # conda-forge is the default channel now and does not need to be specified
+```
+
+## Example 3 (`channels`, `channel-priority`)
+
+```yml
+- uses: mamba-org/provision-with-micromamba@v16
+  with:
+    environment-file: false
+    extra-specs: |
+      python=3.10
+      numpy
+    channels: conda-forge,bioconda
+    channel-priority: strict
+```
+
+becomes
+
+```yml
+- uses: mamba-org/setup-micromamba@v1
+  with:
+    create-args: >-
+      python=3.10
+      numpy
+    # arguments such as channel or channel-priority that belong in the condarc should be specified there
+    # or in a .condarc file which can be referenced with `condarc-file: .condarc`
+    condarc: |
+      channels:
+        - conda-forge
+        - bioconda
+      channel_priority: strict
 ```
 
 ---
