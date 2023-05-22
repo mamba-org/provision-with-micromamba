@@ -327,7 +327,7 @@ async function installEnvironment (inputs, envFilePath, envYaml) {
 // --- Main ---
 
 async function main () {
-  core.warning('This action is deprecated and no longer maintained. Please use mamba-org/setup-micromamba instead.')
+  core.warning('This action is deprecated and no longer maintained. Please use mamba-org/setup-micromamba instead. See `https://github.com/mamba-org/provision-with-micromamba#migration-to-setup-micromamba` for a migration guide.')
   // Using getInput is not safe in a post action for templated inputs.
   // Therefore, we need to save the input values beforehand to the state.
   const inputs = {
