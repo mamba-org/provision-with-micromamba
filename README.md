@@ -23,8 +23,6 @@ The most important difference for migrating is that in `setup-micromamba` you ne
       python=3.10
       numpy
     cache-env: true
-    channels: conda-forge,bioconda
-    channel-priority: strict
 ```
 
 becomes
@@ -42,6 +40,29 @@ becomes
       numpy
     # now called cache-environment
     cache-environment: true
+```
+
+## Example 2
+
+```yml
+- uses: mamba-org/provision-with-micromamba@v16
+  with:
+    environment-file: false
+    extra-specs: |
+      python=3.10
+      numpy
+    channels: conda-forge,bioconda
+    channel-priority: strict
+```
+
+becomes
+
+```yml
+- uses: mamba-org/setup-micromamba@v1
+  with:
+    create-args: >- # beware the >- instead of |, we don't split on newlines but on spaces
+      python=3.10
+      numpy
     # arguments such as channel or channel-priority that belong in the condarc should be specified there
     # or in a .condarc file which can be referenced with `condarc-file: .condarc`
     condarc: |
@@ -51,7 +72,7 @@ becomes
       channel_priority: strict
 ```
 
-## Example 2
+## Example 3
 
 ```yml
 - uses: mamba-org/provision-with-micromamba@main
